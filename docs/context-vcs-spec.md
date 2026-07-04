@@ -2,59 +2,65 @@
 
 Build a centralized, Git-like version control system for a team's **agent working context**. The unit of value is a working session: a developer spends hours with their agent, and the session produces decisions, research findings, state changes, open questions, and next steps. The platform lets each person push a distilled session, reconciles it against the team's current context (dedup, supersede, detect contradictions), maintains a canonical master, and compiles a readable working-state (journal, open threads, subject pages) so any teammate — or their agent — can pick up the work. This is **not** a general knowledge base or encyclopedia: pages exist only for subjects the team is actively working on, recency and supersession dominate, and the landing view is "what's open," not "what do we know."
 
-Deliver **M0 first as a complete, running end-to-end platform** the team uses daily; M1 and M2 deepen it. Every section below tags milestone scope. Flag before deviating from any Core Decision.
+Deliver **M0 first as a complete, running end-to-end platform** the team uses daily. **M1 makes it a hosted, self-serve product a real (not necessarily technical) team can dogfood**; M2 adds trust and depth; M3 adds scale and reach. Every section below tags milestone scope. Flag before deviating from any Core Decision.
+
+> **Milestone renumbering (agreed at M0 exit, 2026-07-04):** the original "M1 — trust and depth" is now **M2**, and the original "M2 — scale and reach" is now **M3**. The new M1 (§11) prioritizes hosting, self-serve accounts, and a friend-usable UX over depth features. Sections below use the *new* numbering throughout.
 
 ## Core decisions
 
 1. The unit of versioning is an **entry**, not a file. The store maps `entry_id → content_hash`, the way Git maps `filename → blob`.
 2. **A push is a session.** `staging_id` identifies the session; the commit message is the skill-written session summary; every entry's provenance carries `session_id` and `origin: human | agent`. The commit DAG doubles as the team's session ledger.
-3. Centralized, single canonical master. Client-server, no peer-to-peer, no CRDT. M0 history is **linear** (staging is the branch; the advisory lock makes every commit a fast-forward); branches/LCA arrive in M2 without schema changes.
+3. Centralized, single canonical master. Client-server, no peer-to-peer, no CRDT. M0 history is **linear** (staging is the branch; the advisory lock makes every commit a fast-forward); branches/LCA arrive in M3 without schema changes.
 4. Conflicts are semantic, not textual. Never line-diff to detect conflicts.
 5. Dedup, merge, and conflict detection are **one relation classifier** (`reconcile_vs_master`), not separate passes. See §6.
-6. The write path is a **skill that runs in the developer's agent session**. The platform never runs extraction; it receives already-structured candidate entries. The skill must consult the **subject registry** before naming subjects — subject reuse is what makes reconciliation fire. See §8.
+6. **Two write paths** (amended at M0 exit; the original rule was agent-skill only, platform never runs extraction). (a) *Agent-session skill* (M0): extraction runs in the developer's agent session; the platform receives already-structured candidate entries. (b) *Standalone push* (M1): `ctxvcs push` sends **raw session notes** and the server runs extraction with the same versioned prompt (`llm/prompts/extract.md`), gated by the §12.4 eval extended with notes-based fixtures. This is what makes the tool usable outside agent sessions and by non-technical users. In both paths, subjects are resolved against the **subject registry** before naming — subject reuse is what makes reconciliation fire. See §8.
 7. Push is two-phase: `stage` (dry-run, writes nothing to master) then `commit` (finalize). The skill stages; a human commits from the UI (or the skill auto-commits when clean).
 8. The system detects and *proposes*; a human decides every `contradicts` on master. Contradictions block auto-merge and open a Merge Request.
 9. Entry identity (`entry_id`) is immutable. Staged entries carry transient ids and adopt an existing `entry_id` when reconciled to one; only `unrelated` entries get a fresh permanent id. Never alias one existing id to another.
-10. **CQRS split.** Entries + the commit DAG are the only write model. The read model is a compiled set of markdown pages — **index, open-threads, journal, subject pages** — derived from master. M0 pages are fully deterministic; the single LLM synthesis section is M1.
+10. **CQRS split.** Entries + the commit DAG are the only write model. The read model is a compiled set of markdown pages — **index, open-threads, journal, subject pages** — derived from master. M0 pages are fully deterministic; the single LLM synthesis section is M2.
 11. **Nobody edits pages.** Pages are pure functions of `(master tree, template version)`. All change enters through entries. Full rebuild is always safe — pages are a regenerable cache.
 12. The compiler is an **incremental build system**: dirty-tracking by `entry_id`, memoization by input hash, bounded recompiles.
 13. The primary agent read path is **navigational**: index → open-threads / journal → subject page → section. Search over pages is Postgres FTS. pgvector is used only on the write path (reconciliation candidate retrieval), never as the consumption interface.
-14. Permissions: M0 is **repo membership + per-user API tokens**. The `access_labels` column exists from day one; M1 turns on label-based Postgres RLS with no data migration. RLS (not app-layer filtering) is the target enforcement.
-15. **Lint** (M1) is a periodic whole-corpus pass (master-vs-master) using the same reconcile classifier; findings open Merge Requests. Lint never auto-fixes.
+14. Permissions: M0 is **repo membership + per-user API tokens**. M1 adds **self-serve accounts** — signup with email + password + a shared invite code; login mints the member's API token server-side (nobody pastes tokens); **single-repo mode** (signup auto-joins the server's default repo); one admin principal — and deliberately nothing finer. The `access_labels` column exists from day one; M2 turns on label-based Postgres RLS with no data migration. RLS (not app-layer filtering) is the target enforcement.
+15. **Lint** (M2) is a periodic whole-corpus pass (master-vs-master) using the same reconcile classifier; findings open Merge Requests. Lint never auto-fixes.
 16. A commit is **one Postgres transaction**: entries, commit row, tree, materialized HEAD, ref advance — atomic under a per-(repo, branch) advisory lock. The ref update is the durable commit point. Page compilation runs *after* and *outside* this transaction.
 
 ## 1. Stack
 
 - Python 3.12, FastAPI + Pydantic v2; Next.js (App Router) for the UI.
 - Postgres 16 + pgvector (HNSW) + FTS (`tsvector` + GIN). One database.
-- **M0 jobs:** a Postgres `jobs` table + FastAPI background tasks (single worker process is sufficient for session-sized pushes of ~20–80 LLM calls). **M1:** Celery + Redis when lint and the synthesis compiler add scheduled/parallel load.
+- **M0/M1 jobs:** a Postgres `jobs` table + FastAPI background tasks (single worker process is sufficient for session-sized pushes of ~20–80 LLM calls). **M2:** Celery + Redis when lint and the synthesis compiler add scheduled/parallel load.
 - LangGraph for the write-pipeline state machine.
-- Anthropic API (Claude) for `reconcile` (M0), `merge_body` + `specificity` + `synthesize_page` (M1). Structured (tool/JSON) outputs wherever the output is machine-consumed.
+- Anthropic API (Claude) for `reconcile` (M0) and server-side `extract` (M1); `merge_body` + `specificity` + `synthesize_page` (M2). Structured (tool/JSON) outputs wherever the output is machine-consumed. **M1 model-cost rule — gate-then-switch:** the classifier's default model may be downshifted (e.g. Sonnet → Haiku 4.5, ~70% cheaper) **only** by rerunning §12.2 on the candidate model with **all gates green**, report committed; otherwise stay on the proven model. LLM spend dominates infra cost (~$0.30–0.80/push on Sonnet vs ~$10/mo hosting), so this is the primary cost lever.
+- **M1 deployment:** one cloud VM (Hetzner/DO class, 2 vCPU / 4 GB, ~$6–15/mo) running the same `docker-compose` as local dev, fronted by Caddy (TLS + domain, HTTPS-only); nightly `pg_dump` to object storage. No managed services, no architecture drift from local.
 - Embeddings behind an `Embedder` interface (default OpenAI `text-embedding-3-small`, 1536-dim); no vendor hardcoded at call sites.
 - Repo layout:
   ```
   ctxvcs/
     api/        FastAPI routers + Pydantic models
     core/       entry/commit domain objects, hashing, canonicalization
-    dag/        tree ops, diff (LCA/merge-base lands M2)
+    dag/        tree ops, diff (LCA/merge-base lands M3)
     pipeline/   LangGraph graph + node implementations (write path)
     compiler/   page compiler: dirty tracking, templates, assembly
-    llm/        Claude clients (reconcile; M1: merge_body, specificity, synthesize_page)
+    llm/        Claude clients (reconcile; M1: extract server-side; M2: merge_body, specificity, synthesize_page)
     store/      SQLAlchemy models, repositories, auth/session mgmt
     embed/      Embedder interface + providers
-    tasks/      job runner (M0: pg-backed; M1: Celery)
+    tasks/      job runner (M0: pg-backed; M2: Celery)
     tests/
     migrations/ Alembic
   evals/        fixtures (JSONL) · eval runners · committed reports — §12
   skill/        context-extraction skill (SKILL.md + thin CLI wrapper)
+  cli/          M1: pip-installable `ctxvcs` CLI (login/push/threads/journal/page/search/pull/install-skill)
   web/          Next.js UI
+  deploy/       M1: compose + Caddy config + backup cron for the VM
   ```
 
 ## 2. System shape
 
 ```
-WRITE:  agent session + skill --stage--> [validate → embed → reconcile_vs_master →
-        apply_actions → router]
+WRITE:  agent session + skill ----------structured entries----------┐
+        ctxvcs push (M1) --raw notes--> server-side extract --------┴--stage-->
+        [validate → embed → reconcile_vs_master → apply_actions → router]
         router: clean --commit txn--> master   |   contradicts --> Merge Request --> UI review --> commit txn
 
 STORE:  Postgres = source of truth: entries · commits/DAG · commit_entries ·
@@ -65,7 +71,7 @@ READ:   master advance --async--> page compiler (dirty pages only, memoized)
         --> served: /wiki/index → open-threads/journal → page?section= → /wiki/search (FTS)
         agents read at session start; conflict banners joined at serve time
 
-LINT (M1):  nightly master-vs-master reconcile sweep + invariants --> MRs in the review queue
+LINT (M2):  nightly master-vs-master reconcile sweep + invariants --> MRs in the review queue
 ```
 
 ## 3. Default schema — the working-context starter pack (M0)
@@ -81,7 +87,7 @@ M0 ships these built-in entry types; `POST /schema` can extend or override them,
 
 Lifecycle rule: closing an `open_question`/`next_step` is a **refines** push (new version with `status: closed`, superseding the open one) — no separate close endpoint or machinery.
 
-Schema extensions per type: `x-subject-key`, `x-access-default` (labels; recorded in M0, enforced in M1), `x-embed-fields`. Push-time validation is JSON Schema per entry; hard failure ⇒ 422 with violations. No LLM.
+Schema extensions per type: `x-subject-key`, `x-access-default` (labels; recorded in M0, enforced in M2), `x-embed-fields`, `x-collision-exempt` (lifecycle/metadata fields — e.g. `status`, `confidence` — excluded from the §6 collision prefilter; added during M0 eval iteration). Push-time validation is JSON Schema per entry; hard failure ⇒ 422 with violations. No LLM.
 
 ## 4. Data model
 
@@ -95,7 +101,7 @@ class Entry:
     body: str
     subject_key: str         # normalized (lower, trimmed) from x-subject-key
     embedding: list[float]
-    access_labels: list[str] # recorded M0, enforced M1
+    access_labels: list[str] # recorded M0, enforced M2
     provenance: dict         # {author, session_id, ts, origin: human|agent, note}
 ```
 `content_hash` is computed over a canonical JSON serialization (sorted keys, normalized whitespace; excludes provenance and embedding). Identical content ⇒ identical hash ⇒ stored once.
@@ -107,7 +113,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE repos (id UUID PRIMARY KEY, name TEXT, owner TEXT, created_at TIMESTAMPTZ DEFAULT now());
 CREATE TABLE members (repo_id UUID REFERENCES repos(id), principal TEXT, role TEXT, api_token_hash TEXT,
                       PRIMARY KEY (repo_id, principal));   -- M0 auth: membership + token
--- M1 adds: grants(read_labels, write_labels) and RLS policies on entries.
+-- M1 adds: password_hash + display_name on members (self-serve signup); server config carries
+--          DEFAULT_REPO + INVITE_CODE. Token model unchanged — login returns/regenerates it.
+-- M2 adds: grants(read_labels, write_labels) and RLS policies on entries.
 
 CREATE TABLE schema_versions (
   repo_id UUID REFERENCES repos(id), version INT,
@@ -133,7 +141,7 @@ CREATE TABLE commits (
   session_id UUID, created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE TABLE commit_parents (commit_hash TEXT REFERENCES commits(hash), parent_hash TEXT REFERENCES commits(hash),
-                             PRIMARY KEY (commit_hash, parent_hash));   -- linear in M0; table shape ready for M2
+                             PRIMARY KEY (commit_hash, parent_hash));   -- linear in M0; table shape ready for M3
 CREATE TABLE commit_entries (commit_hash TEXT REFERENCES commits(hash), entry_id UUID, content_hash TEXT REFERENCES entries(content_hash),
                              PRIMARY KEY (commit_hash, entry_id));
 
@@ -162,7 +170,7 @@ CREATE TABLE staged_entries (
 );
 CREATE TABLE merge_requests (
   id UUID PRIMARY KEY, repo_id UUID REFERENCES repos(id), staging_id UUID REFERENCES staged_entries(id),
-  origin TEXT DEFAULT 'push',               -- push | lint (M1)
+  origin TEXT DEFAULT 'push',               -- push | lint (M2)
   status TEXT DEFAULT 'open', created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE TABLE conflicts (
@@ -185,7 +193,7 @@ CREATE TABLE wiki_pages (
   outbound_links TEXT[] NOT NULL DEFAULT '{}',
   fts tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
   compiled_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (repo_id, slug)               -- M1 adds view_labels to the key for per-view pages
+  UNIQUE (repo_id, slug)               -- M3 adds view_labels to the key for per-view pages
 );
 CREATE INDEX ON wiki_pages USING gin (fts);
 CREATE INDEX ON wiki_pages (repo_id, subject_key);
@@ -196,7 +204,7 @@ CREATE TABLE page_inputs (             -- dirty tracking; key on entry_id, not c
 );
 CREATE INDEX ON page_inputs (entry_id);
 
--- M1: wiki_page_versions (append-only audit), wiki_redlinks (coverage-gap queue)
+-- M2: wiki_page_versions (append-only audit), wiki_redlinks (coverage-gap queue)
 ```
 
 ### 4.3 Commit transaction boundary (M0)
@@ -219,7 +227,7 @@ State: `repo_id, parent_commit, incoming_entries[], proposed_actions[], conflict
 4. **apply_actions** — execute the routing table. In `mode='stage'` simulated into `proposed_actions`; in `mode='commit'` writes via §4.3.
 5. **router** — any unresolved `contradicts` ⇒ `needs_review`, persist Merge Request + conflicts, do not advance master; else auto-merge and enqueue `compile_dirty_pages(commit)`.
 
-M1 adds: **intra_push_dedup** (semantic, within batch), **rate** (hygiene gate before router). Commits serialize per repo via the advisory lock.
+M1 prepends an optional **extract** node (raw notes → candidate entries via `llm/extract`, subject registry passed in-prompt) ahead of validate — used by the standalone push path only. M2 adds: **intra_push_dedup** (semantic, within batch), **rate** (hygiene gate before router). Commits serialize per repo via the advisory lock.
 
 ## 6. Reconciliation classifier — the write-side centerpiece (M0)
 
@@ -251,7 +259,7 @@ Routing table (relation → action; identity rule in parentheses):
 - **subsumed_by** → drop incoming.
 - **subsumes** → supersede `c` with incoming (adopts `c.entry_id`; old marked `superseded_by` in provenance).
 - **refines** → clean update: supersede, same identity rule. The dominant session pattern — including status closes (§3). No human review.
-- **complementary** → **M0: keep both** (both entries live under their own ids). M1: deterministic field union + `llm/merge_body` + schema revalidation; same-scalar collision promotes to `contradicts`; the LLM never picks a scalar.
+- **complementary** → **M0/M1: keep both** (both entries live under their own ids). M2: deterministic field union + `llm/merge_body` + schema revalidation; same-scalar collision promotes to `contradicts`; the LLM never picks a scalar.
 - **contradicts** → conflict: persist under a Merge Request; a human decides. Default proposal `{"action":"supersede","winner":"incoming"}` — proposal only. Review UI shows each side's `origin` (human vs agent) and timestamps.
 - **unrelated** → new entry, fresh permanent `entry_id`.
 
@@ -265,17 +273,17 @@ Pages are pure functions of `(master tree, template version)`. No LLM anywhere i
 - **index** — one line per page: slug + one-line summary + `as_of_commit`. The agent's routing file. Links open-threads and journal at the top.
 - **open_threads** — every `open_question` and `next_step` with `status=open`, grouped by subject, newest first, each with owner/blocking flags and a link to its subject page. **This is the landing page for picking up work.**
 - **journal** — sessions newest first: commit summary, author, timestamp, then the session's entries grouped by type (decisions / findings / state changes / opened / closed). The team's ledger; replaces hub/overview pages entirely.
-- **subject** — per active `subject_key`: frontmatter (`subject, as_of_commit, sections`), a **Facts** table rendered from structured fields (stable field-name ordering; byte-stable across recompiles), entry bodies grouped by type with provenance footnotes (`author · origin · session · ts`), **Open conflicts** (serve-time overlay from `conflicts`, never compiled in), Related (`[[subject]]` links resolved by exact match against the subject registry; unresolved render as plain text in M0, redlink queue in M1), History (superseded-chain pointers).
+- **subject** — per active `subject_key`: frontmatter (`subject, as_of_commit, sections`), a **Facts** table rendered from structured fields (stable field-name ordering; byte-stable across recompiles), entry bodies grouped by type with provenance footnotes (`author · origin · session · ts`), **Open conflicts** (serve-time overlay from `conflicts`, never compiled in), Related (`[[subject]]` links resolved by exact match against the subject registry; unresolved render as plain text in M0, redlink queue in M2), History (superseded-chain pointers).
 
 **Compiler:** on master advance — `diff_entry_ids(parent, HEAD)` → `page_inputs` join → dirty subject pages; recompile those, then open_threads, journal (append-mostly), index. Memoize by `input_hash`; skip on match. Runs as a job after the commit transaction. `POST /wiki/rebuild` recompiles everything and is always safe. Eventual consistency is seconds; frontmatter `as_of_commit` exposes the lag.
 
-**M1 additions:** the single LLM `## Current understanding` synthesis section per subject page, regenerated only when fact inputs change (prior text passed to damp churn), recorded in `wiki_page_versions`; `wiki_redlinks`; per-view (label-partitioned) compilation.
+**M2 additions:** the single LLM `## Current understanding` synthesis section per subject page, regenerated only when fact inputs change (prior text passed to damp churn), recorded in `wiki_page_versions`; `wiki_redlinks`. **M3:** per-view (label-partitioned) compilation.
 
-## 8. Context-extraction skill (M0)
+## 8. Write clients: agent skill (M0) + standalone CLI push (M1)
 
-`skill/SKILL.md` + a thin CLI. Runs inside the developer's agent session; the platform runs no extraction. Plain REST with the user's API token; no MCP dependency.
+**Agent skill (M0):** `skill/SKILL.md` + a thin CLI. Runs inside the developer's agent session; extraction happens client-side. Plain REST with the user's API token; no MCP dependency.
 
-Write flow:
+Skill write flow:
 ```
 0. GET  /repos/{r}/subjects                        -> the subject registry. REUSE existing
                                                       subjects; invent a new one only when
@@ -295,6 +303,19 @@ Write flow:
 ```
 
 Read flow (session start): `GET /wiki/page/open-threads` and the last few journal sessions; open subject pages/sections as needed via `?section=`; `GET /wiki/search?q=` for keyword lookup. Never fetch raw entries as the default read.
+
+**Standalone CLI push (M1)** — for anyone, agent session or not. `pipx install ctxvcs`, then:
+```
+ctxvcs login                       # once; email+password -> stores API token in ~/.ctxvcs/config
+ctxvcs push                        # opens $EDITOR with a notes template; or --file notes.md / --stdin
+  -> POST /stage {raw_notes, ...}  # server runs extract (llm/prompts/extract.md, registry in-prompt)
+  -> terminal preview: "3 new · 2 updates · 1 conflict"
+  -> clean: auto-commit + wiki link   |   conflict: prints the review URL for the admin
+ctxvcs threads | journal | page <subject> | search <q>     # read commands (compiled pages only)
+ctxvcs pull                        # one-shot /context bundle -> paste into any agent
+ctxvcs install-skill               # installs the agent skill to ~/.claude/skills, env wired
+```
+The two paths share everything downstream of extraction: same stage/commit API, same pipeline, same preview semantics. Extraction quality for the notes path is gated by §12.4's notes-based fixtures.
 
 ## 9. API surface (M0 unless tagged)
 
@@ -323,8 +344,11 @@ GET    /repos/{r}/wiki/page/{slug}?section={id}        -> full page or one heade
 GET    /repos/{r}/wiki/search?q=&k=                     -> FTS; [{slug, section_id, snippet, rank}]
 POST   /repos/{r}/wiki/rebuild    (owner)
 
-# M1: /grants + RLS enforcement · /wiki/redlinks · /context one-shot bundle · lint report endpoints
-# M2: /branches/* · LCA/merge-base · MCP server surface
+# M1: POST /auth/signup {email, password, invite_code} · POST /auth/login -> {token, repo_id} ·
+#     GET /me · stage accepts {raw_notes} (server-side extract) · GET /context (one-shot bundle for `ctxvcs pull`) ·
+#     single-repo mode: server resolves the default repo so clients never handle {r}
+# M2: /grants + RLS enforcement · /wiki/redlinks · lint report endpoints
+# M3: /branches/* · LCA/merge-base · MCP server surface
 ```
 
 ## 10. UI (Next.js) — M0 screens only
@@ -332,7 +356,7 @@ POST   /repos/{r}/wiki/rebuild    (owner)
 - **Review / merge queue (hero).** Staging preview: incoming entries tagged new / refine / supersede / kept-both / dropped / conflict. Conflicts render current vs incoming side by side with the classifier's rationale, confidence, conflicting fields, and **each side's origin (human/agent) + session + timestamp**. Accept / edit / reject map to `commit` resolutions. Build this first and best.
 - **Wiki browser.** Open-threads as the default landing tab; journal; index navigation; subject pages with the serve-time conflict overlay; a search box over `/wiki/search`.
 
-M1 screens: grants admin, lint reports, redlink queue. M2: schema editor.
+M1 screens: **signup/login + onboarding** (register with invite code → shown exactly two commands: `pipx install ctxvcs`, `ctxvcs login` → first-push walkthrough); settings auto-configured by login (no API-URL/repo-id/token pasting anywhere); pending-review badge for the admin. M2: grants admin, lint reports, redlink queue. M3: schema editor.
 
 ## 11. Milestones
 
@@ -348,11 +372,31 @@ Acceptance (scripted end-to-end, then a week of real use):
 - A push touching k entries recompiles exactly the dirty subject pages (all other `input_hash` unchanged) + open-threads + journal + index; `rebuild` reproduces byte-identical pages.
 - All §12 eval gates pass: reconcile seed-set action-level gates (zero missed conflicts, zero false conflicts on supersede-expected pairs, zero false drops, ≥18/21 action accuracy, ≤3 non-unanimous pairs), golden scenarios S1/S2 green in both fake and live modes, skill extraction metrics at threshold, fixture set grown to ≥40 pairs. Reports committed under `evals/reports/`.
 
-### M1 — trust and depth
+### M1 — hosted, self-serve, friend-usable (the demo-team milestone)
+Goal: a real team — not platform builders, not necessarily technical — dogfoods the tool on a demo project with zero hand-holding. Everything that doesn't serve that is deferred.
+
+Scope:
+- **Hosting:** one cloud VM (Hetzner/DO class) running the local `docker-compose` behind Caddy (TLS, real domain, HTTPS-only); nightly `pg_dump` to object storage; `deploy/` scripts in-repo; restart-on-reboot. Infra budget ≤ ~$15/mo (LLM spend is the real cost — see the §1 gate-then-switch rule).
+- **Self-serve accounts (single-repo mode):** `POST /auth/signup` (email + password + shared `INVITE_CODE`), `POST /auth/login`; bcrypt password hashes; login mints/regenerates the member's API token server-side; signup auto-joins the server's `DEFAULT_REPO`; exactly one admin (the repo owner). No grants, no labels, no finer permissions — that is M2.
+- **`ctxvcs` CLI (pipx-installable):** `login` · `push` (notes via `$EDITOR`/`--file`/`--stdin` → server-side extraction → terminal preview → auto-commit when clean, review URL on conflict) · `threads` / `journal` / `page` / `search` · `pull` (one-shot `/context` bundle) · `install-skill`. See §8.
+- **Server-side extraction:** the §5 extract node; same versioned `llm/prompts/extract.md`; subject registry injected in-prompt; gated by §12.4 extended with notes-based fixtures (N1–N2).
+- **UX:** onboarding page (register → two copy-paste commands → first-push walkthrough); zero token/repo-id handling anywhere in UI or CLI; admin pending-review badge. Notifications beyond the badge are out of scope.
+- **Cost control:** gate-then-switch candidate = Haiku 4.5 (~70% cheaper); adopt only on an all-green §12.2 run against it, report committed either way.
+- **Eval discipline carries over:** every real-use misclassification becomes a fixture before it is fixed; the ≥40-pair M0 floor only grows.
+
+Acceptance (scripted, then two weeks of friend-team dogfood):
+- A friend on a fresh laptop: signup with invite code → `pipx install ctxvcs` → `ctxvcs login` → pushes real session notes → sees them reconciled in the wiki. Under 10 minutes, no help from the admin.
+- A pushed contradiction ⇒ CLI prints "needs review" + URL; the admin resolves in the UI; the pusher sees the updated Facts row. A clean push auto-commits with no admin involvement.
+- `ctxvcs pull` pasted into a fresh agent session reproduces M0's no-hand-off test ("current state + what's next" correct) — now via CLI, no skill required.
+- Any member reads master via UI and CLI without ever seeing a token or repo id.
+- VM reboot ⇒ platform back up unattended; a restore-from-backup drill succeeds on a scratch VM.
+- Model downshift decision documented: an all-green (adopted) or failing (rejected) §12.2 report on the candidate model, committed.
+
+### M2 — trust and depth (was M1)
 Label RLS enforcement (dedicated RLS-subject app role; compiler/lint under a privileged service role; verify enforcement by querying as the app role directly) · complementary merge (deterministic field union, `llm/merge_body`, revalidate, scalar collision ⇒ `contradicts`) · rating gate (`schema_completeness`, `provenance_present`, `specificity`, redundancy penalty; below threshold ⇒ review) · semantic intra-push dedup · nightly lint (master-vs-master sweep within subject clusters + budgeted near-neighbor pairs ⇒ `origin='lint'` MRs; invariants: input_hash recompute, `master_entries` ≡ HEAD, page lag bound) · `## Current understanding` synthesis with input-hash gating + `wiki_page_versions` · redlinks · Celery/Redis swap-in · eval expansion per §12: grow the fixture set to ≥60 pairs, add model-version regression tracking and per-relation trend reports in CI; `contradicts` recall and `refines`-vs-`contradicts` separation remain the headline metrics.
 
-### M2 — scale and reach
-Branches + LCA/merge-base + branch-aware diff · per-view (label-partitioned) page compilation, baseline eager / restricted lazy · MCP server exposing search/read/stage · schema-editor UI · multi-repo/team hardening · wiki export (Obsidian-browsable tree) · claim-level decomposition seam activation if entry-level precision proves insufficient.
+### M3 — scale and reach (was M2)
+Branches + LCA/merge-base + branch-aware diff · per-view (label-partitioned) page compilation, baseline eager / restricted lazy · MCP server exposing search/read/stage · schema-editor UI · multi-repo/team hardening (drops M1's single-repo assumption) · wiki export (Obsidian-browsable tree) · claim-level decomposition seam activation if entry-level precision proves insufficient.
 
 ## 12. Eval strategy (M0) — the coding agent's development loop
 
@@ -410,6 +454,8 @@ Three synthetic transcripts in `fixtures/skill/`, each a condensed session log w
 - **T1** — ban-lifecycle implementation session: contains one human decision (transactional half-messages), two agent findings (at-least-once semantics; DLQ behavior), one opened next_step.
 - **T2** — age-verification vendor evaluation: one human decision with alternatives, one constraint (AU U16 deadline), one open_question (fallback when estimation confidence is low).
 - **T3** — a follow-up session whose content maps onto **existing** registry subjects (`ban-service-consumer`, `dlq-replay-runbook`); tests reuse, not invention.
+
+**M1 extension (server-side extraction):** add ≥2 notes-based fixtures (N1–N2) — short, informal raw notes (the `ctxvcs push` input shape, not agent transcripts), one of which closes an existing open thread and one of which must reuse ≥2 registry subjects. Same metrics and gates as T1–T3; the same fixtures gate both the skill and the server-side extract node since they share the prompt.
 
 Metrics and gates: schema-validity **100%** (deterministic); subject reuse ≥ **4/5** reusable slots on T3 (the anti-sprawl gate); expected-item recall ≥ **80%** across T1–T3; hallucinated decisions = **0**, graded by an LLM judge that checks each extracted `decision` is grounded in the transcript. Judge discipline: judge model + rubric are pinned files in `evals/`; the human spot-checks the judge's first 20 verdicts before its scores are trusted; judges are used only where no ground-truth label exists (never in §12.2).
 
