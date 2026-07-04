@@ -1,0 +1,31 @@
+{
+  "name": "S2 — close the loop",
+  "seed": [
+    {"key": "seed-step", "type": "next_step", "subject": "dlq-replay-runbook",
+     "fields": {"status": "open", "owner": "chenrui"},
+     "body": "Write the DLQ replay runbook for ban-service.",
+     "ts": "2026-06-19", "origin": "human"},
+    {"key": "seed-ctx", "type": "finding", "subject": "ban-service-consumer",
+     "fields": {"consumer_timeout_seconds": 60},
+     "body": "RocketMQ consumer timeout for ban-service is 60s.",
+     "ts": "2026-06-18", "origin": "agent"}
+  ],
+  "push": [
+    {"key": "p-close", "type": "next_step", "subject": "dlq-replay-runbook",
+     "fields": {"status": "closed", "owner": "chenrui"},
+     "body": "DLQ replay runbook written and linked from the oncall doc.",
+     "ts": "2026-06-26", "origin": "human"},
+    {"key": "p-question", "type": "open_question", "subject": "dlq-replay-runbook",
+     "fields": {"status": "open", "blocking": false},
+     "body": "Should replay batches be capped per tenant to avoid thundering herd?",
+     "ts": "2026-06-26", "origin": "human"}
+  ],
+  "script": [
+    {"incoming": "p-close", "existing": "seed-step", "relation": "refines"},
+    {"incoming": "p-question", "existing": "seed-step", "relation": "complementary"},
+    {"incoming": "p-question", "existing": "p-close", "relation": "complementary"}
+  ],
+  "expected_actions": {"p-close": "supersede", "p-question": "keep"},
+  "seed_summary": "Seed: open runbook step.",
+  "push_summary": "Close the runbook step; open replay-batching question."
+}

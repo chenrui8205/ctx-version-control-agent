@@ -1,0 +1,1019 @@
+{
+  "rows": [
+    {
+      "id": "R01",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [
+        "consumer_timeout_seconds"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R02",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R03",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R04",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [
+        "chosen"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R05",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R06",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [
+        "consumer_timeout_seconds"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R07",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R08",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R09",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines",
+        "subsumes"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R10",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate"
+      ],
+      "trials": [
+        "duplicate",
+        "duplicate",
+        "duplicate"
+      ],
+      "prediction": "duplicate",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R11",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate"
+      ],
+      "trials": [
+        "duplicate",
+        "duplicate",
+        "duplicate"
+      ],
+      "prediction": "duplicate",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R12",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate",
+        "subsumed_by"
+      ],
+      "trials": [
+        "duplicate",
+        "duplicate",
+        "duplicate"
+      ],
+      "prediction": "duplicate",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R13",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumed_by"
+      ],
+      "trials": [
+        "subsumed_by",
+        "subsumed_by",
+        "subsumed_by"
+      ],
+      "prediction": "subsumed_by",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R14",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumed_by"
+      ],
+      "trials": [
+        "subsumed_by",
+        "subsumed_by",
+        "subsumed_by"
+      ],
+      "prediction": "subsumed_by",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R15",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumes"
+      ],
+      "trials": [
+        "subsumes",
+        "subsumes",
+        "subsumes"
+      ],
+      "prediction": "subsumes",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R16",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumes",
+        "refines"
+      ],
+      "trials": [
+        "subsumes",
+        "subsumes",
+        "subsumes"
+      ],
+      "prediction": "subsumes",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R17",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R18",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R19",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R20",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "unrelated"
+      ],
+      "trials": [
+        "unrelated",
+        "unrelated",
+        "unrelated"
+      ],
+      "prediction": "unrelated",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R21",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "unrelated"
+      ],
+      "trials": [
+        "unrelated",
+        "unrelated",
+        "unrelated"
+      ],
+      "prediction": "unrelated",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "echo-expected fake",
+        "echo-expected fake",
+        "echo-expected fake"
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    }
+  ],
+  "n": 21,
+  "action_correct": 21,
+  "acc_needed": 18,
+  "missed_conflicts": [],
+  "false_conflicts_on_supersede": [],
+  "false_drops": [],
+  "non_unanimous": [],
+  "conflict_cross": [],
+  "path_mismatch": [],
+  "gates": {
+    "missed_conflicts == 0": true,
+    "false_conflicts_on_supersede == 0": true,
+    "false_drops == 0": true,
+    "action_accuracy >= 18/21": true,
+    "non_unanimous <= 3": true,
+    "no action-crossing trials on conflict-expected pairs": true,
+    "prefilter path matches fixture path": true
+  },
+  "passed": true
+}
