@@ -109,7 +109,7 @@ def run_s1(session: Session, mode: str = "fake") -> ScenarioRun:
     session.commit()
     compile_pages(session, repo.id, None)
 
-    c0 = seed_commit(session, repo.id, sc, nonce, mode)
+    seed_commit(session, repo.id, sc, nonce, mode)
     tree0 = master_tree(session, repo.id)
     r.add("C0 seeded with four entries", len(tree0) == 4, f"{len(tree0)} entries")
     pages0 = page_snapshot(session, repo.id)

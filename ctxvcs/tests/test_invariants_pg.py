@@ -4,12 +4,12 @@ failure, identity rules, idempotent identical pushes, stale-parent rejection."""
 import uuid
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from ctxvcs.dag.trees import commit_tree, head_commit, master_tree
 from ctxvcs.llm.fakes import FakeEmbedder, ScriptedReconcileClient
 from ctxvcs.pipeline.graph import PipelineContext, run_commit, run_stage
-from ctxvcs.store.commit_txn import CommitError, StaleParentError, commit_staged
+from ctxvcs.store.commit_txn import StaleParentError, commit_staged
 from ctxvcs.store.models import StagedEntries
 from ctxvcs.store.repo_ops import current_schema
 
@@ -70,7 +70,7 @@ def test_supersede_keeps_entry_id_and_marks_provenance(session, repo):
     tree0 = master_tree(session, repo.id)
     (eid, old_hash), = tree0.items()
 
-    script = {(f"v2", f"v1"): "refines"}
+    script = {("v2", "v1"): "refines"}
     ctx = _ctx(session, repo, script)
     state = run_stage(ctx, repo.id, "tester",
                       [_raw("v2", subj, f"changed timeout 60 to 30 {n}", fields={"t": 30},

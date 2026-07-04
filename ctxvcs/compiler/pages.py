@@ -98,7 +98,7 @@ def render_subject(subject_key: str, entries: list[dict], registry: set[str],
             lines.append(f"- {e['body']}")
             if extras:
                 lines.append(f"  - {extras}")
-            lines.append(f"  - <sub>{_prov_line(e)}</sub>")
+            lines.append(f"  - *{_prov_line(e)}*")
         lines.append("")
 
     if tokens:
@@ -164,7 +164,7 @@ def render_open_threads(open_items: list[dict], head: str) -> tuple[str, list[st
                 flags.append(f"owner: {f['owner']}")
             suffix = (" — " + " · ".join(flags)) if flags else ""
             lines.append(f"- [ ] `{e['type']}` {e['body']}{suffix}")
-            lines.append(f"  - <sub>{_prov_line(e)}</sub>")
+            lines.append(f"  - *{_prov_line(e)}*")
         lines.append("")
     input_tokens = sorted(e["content_hash"] for e in open_items) + [f"as_of:{head}"]
     return "\n".join(lines).rstrip() + "\n", links, input_tokens
@@ -195,12 +195,12 @@ def render_journal(sessions: list[dict], head: str) -> tuple[str, list[str], lis
                 slug = slugify(e["subject_key"])
                 links.append(slug)
                 origin = (e.get("provenance") or {}).get("origin", "?")
-                lines.append(f"- [{e['subject_key']}]({slug}): {e['body']} <sub>({origin})</sub>")
+                lines.append(f"- [{e['subject_key']}]({slug}): {e['body']} *({origin})*")
             lines.append("")
         if s["resolved"]:
             lines.append("**Resolved conflicts**")
             for r in s["resolved"]:
-                lines.append(f"- {r['subject_key']}: {r['decision']} <sub>(was {r['existing_hash'][:8]})</sub>")
+                lines.append(f"- {r['subject_key']}: {r['decision']} *(was {r['existing_hash'][:8]})*")
             lines.append("")
     input_tokens = sorted(s["commit"] for s in sessions) + [f"as_of:{head}"]
     return "\n".join(lines).rstrip() + "\n", sorted(set(links)), input_tokens

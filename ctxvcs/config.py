@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     embed_dim: int = 1536
 
     # compiler
-    template_version: str = "m0-v1"  # pages are functions of (master tree, template version)
+    template_version: str = "m0-v2"  # pages are functions of (master tree, template version)
 
     # evals (§12)
     eval_trials: int = 3  # majority vote over N classifier calls per pair

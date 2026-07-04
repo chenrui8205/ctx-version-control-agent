@@ -1,0 +1,10 @@
+{
+  "subjects": [
+    {"subject_key": "ban-service-consumer", "entries": 4},
+    {"subject_key": "dlq-replay-runbook", "entries": 2},
+    {"subject_key": "ban-txn-messaging", "entries": 3},
+    {"subject_key": "rocketmq-delivery", "entries": 1},
+    {"subject_key": "au-u16-age-assurance", "entries": 5},
+    {"subject_key": "bloom-filter-cache", "entries": 2}
+  ]
+}

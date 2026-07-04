@@ -1,0 +1,6 @@
+{
+  "model": "claude-sonnet-5",
+  "rubric": "rubric.md",
+  "pinned_on": "2026-07-04",
+  "note": "Judge model + rubric are pinned (§12.4). Human spot-checks the first 20 verdicts before scores are trusted; see reports. Judges are used ONLY where no ground-truth label exists — never in §12.2."
+}

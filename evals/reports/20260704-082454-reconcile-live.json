@@ -1,0 +1,1025 @@
+{
+  "rows": [
+    {
+      "id": "R01",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "rationales": [
+        "Both entries state present-tense values for the same field (60s vs 30s) with no change language (\"changed from\", \"migrated to\") indicating an update; constrained mode requires contradicts absent such evidence.",
+        "Both entries state present-tense current timeout values (60s vs 30s) for the same field with no change/migration language explaining the difference; timestamp alone doesn't reconcile a live factual conflict.",
+        "Both entries state present-tense values for the same field (60s vs 30s) with no change/migration language explaining the difference, so per constrained-mode rules this is a live disagreement, not a refinement."
+      ],
+      "conflicting_fields": [
+        "consumer_timeout_seconds"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R02",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.85,
+        0.83,
+        0.85
+      ],
+      "rationales": [
+        "The decision states Yoti facial estimation is currently used for AU U16 age assurance, while the finding reports the live implementation only does DOB self-declaration with no facial estimation call\u2014both present-tense claims about the same current state with no change/migration language to reconcile them.",
+        "The decision states Yoti facial estimation is currently used, while the finding reports the live flow only does DOB self-declaration with no facial estimation call\u2014two present-tense claims about the same current implementation with no change language reconciling them.",
+        "Both claims are present-tense statements about the current AU U16 signup flow's age assurance mechanism (Yoti facial estimation vs DOB-only, no facial call), with no change or migration language reconciling them; this is a decision vs. observed behavior conflict."
+      ],
+      "conflicting_fields": [
+        "chosen"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R03",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.85,
+        0.85,
+        0.83
+      ],
+      "rationales": [
+        "Both entries make present-tense claims about the current mechanism of ban propagation (synchronous vs asynchronous), with no change language ('migrated', 'changed from...to') indicating this is an update rather than a competing observation.",
+        "Both entries state, in present tense, mutually exclusive claims about ban propagation (synchronous with completion before response vs. asynchronous/eventual via outbox), with no change or migration language linking them.",
+        "Both entries state present-tense, incompatible architectures (synchronous vs asynchronous enforcement) for the same subject with no change language ('migrated', 'changed from') indicating an actual transition occurred."
+      ],
+      "conflicting_fields": [
+        "propagation_mode"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R04",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.85,
+        0.85,
+        0.85
+      ],
+      "rationales": [
+        "Both entries state a present-tense, standing decision for the same field ('chosen' retrieval tech) with incompatible values, and neither text frames the new value as a change from the old (no 'migrated', 'changed from', etc.), so this is a live disagreement rather than a described transition.",
+        "Both entries state a present-tense, standing decision for the same field (\"chosen\") with different values, and neither text frames the new value as a change from the old (no \"changed from\", \"migrated\", etc.), so under constrained mode this is a live disagreement rather than a refinement.",
+        "Both entries state a present-tense standing decision for the same field ('chosen' retrieval tech) with no change language linking them (e.g., 'migrated from pgvector to Elasticsearch'), so this is a live disagreement rather than a described update."
+      ],
+      "conflicting_fields": [
+        "chosen"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R05",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "contradicts"
+      ],
+      "trials": [
+        "contradicts",
+        "contradicts",
+        "contradicts"
+      ],
+      "prediction": "contradicts",
+      "action_expected": [
+        "conflict"
+      ],
+      "action_predicted": "conflict",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "conflict",
+        "conflict",
+        "conflict"
+      ],
+      "confidences": [
+        0.88,
+        0.85,
+        0.85
+      ],
+      "rationales": [
+        "The existing constraint mandates age gate resolution before ban propagation fan-out, while the incoming finding reports the opposite ordering as current observed behavior, with no change language reconciling the two.",
+        "The existing entry is a hard legal requirement that the age gate resolve before ban propagation, while the incoming finding reports the observed current behavior is the opposite order, with no change language indicating this ordering was intentionally updated\u2014an observed-behavior-vs-decision conflict.",
+        "The existing hard legal constraint requires the age gate to resolve before ban propagation fans out, while the incoming finding reports the opposite order as current observed behavior, with no change/migration language reconciling the two."
+      ],
+      "conflicting_fields": [
+        "ordering: age-gate-before-fanout vs fanout-before-age-gate"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R06",
+      "path_expected": "collision",
+      "path_actual": "collision",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "rationales": [
+        "Incoming explicitly states a change event (\"load test led us to change...from 60s to 30s\"), an explicit before/after transition of the same field, so it refines the existing finding rather than contradicting it.",
+        "Incoming explicitly frames the value change as a result of a load test (\"changed...from 60s to 30s\"), which is change language updating the prior timeout, not a competing current claim.",
+        "Incoming entry explicitly frames the value change as an update resulting from a load test (\"changed...from 60s to 30s\"), which is change language pointing to refines, not a live contradiction."
+      ],
+      "conflicting_fields": [
+        "consumer_timeout_seconds"
+      ],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R07",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.97,
+        0.98,
+        0.97
+      ],
+      "rationales": [
+        "Status transition from open to closed with explicit completion event (\"written and linked from the oncall doc\"), same subject and owner.",
+        "Status transition from open to closed with explicit completion language (\"written and linked\"), same subject and owner, representing a next-step update rather than a conflicting claim.",
+        "Status transition from open to closed with explicit completion language (\"written and linked\"), same subject and owner, describing the task's completion."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R08",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines"
+      ],
+      "trials": [
+        "refines",
+        "refines",
+        "refines"
+      ],
+      "prediction": "refines",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "rationales": [
+        "Same subject and field; incoming explicitly describes a migration event (\"migrated ... to schema v2 ... v1 output removed\"), which is change language superseding the old v1 state.",
+        "Same subject and location; incoming explicitly describes a migration event (schema v1 -> v2, v1 removed) that supersedes the prior state, which is textbook change language, not a live conflict.",
+        "The incoming entry explicitly describes a migration event (\"Migrated ... to schema v2 on 6/25; v1 output removed\"), which is change language updating the existing schema v1 state, so it refines rather than contradicts."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R09",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "refines",
+        "subsumes"
+      ],
+      "trials": [
+        "subsumes",
+        "subsumes",
+        "subsumes"
+      ],
+      "prediction": "subsumes",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "rationales": [
+        "Incoming restates the same decision (Redis chosen) and adds a concrete detail (15m TTL) confirmed after review, so it contains everything the existing entry says plus more.",
+        "Incoming confirms the same chosen value (Redis) and adds strictly more detail (15m TTL, review confirmation), so it contains everything the existing entry states plus more.",
+        "Incoming restates the same decision (Redis) and adds new detail (15m TTL, confirmed after review), containing all prior info plus more."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R10",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate"
+      ],
+      "trials": [
+        "duplicate",
+        "duplicate",
+        "duplicate"
+      ],
+      "prediction": "duplicate",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "Both entries state the same fact (RocketMQ is at-least-once delivery) and the same requirement (consumers must be idempotent) with only rewording; no added or removed information.",
+        "Same subject, same constraint fields, and identical claim (at-least-once delivery requires idempotent consumers) with only wording rephrased and reordered.",
+        "Both entries state the identical claim\u2014RocketMQ's at-least-once delivery requires idempotent consumers\u2014just with reordered wording; no new information or change is introduced."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R11",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate"
+      ],
+      "trials": [
+        "duplicate",
+        "duplicate",
+        "duplicate"
+      ],
+      "prediction": "duplicate",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.94,
+        0.94,
+        0.93
+      ],
+      "rationales": [
+        "Both entries state the same constraint\u2014bloom filter hits only rule out bans and must always be confirmed against the source of truth before actioning\u2014differing only in wording and origin, with no added detail or containment difference.",
+        "Both entries state the identical constraint (bloom hit alone can't action; must confirm via source of truth; filter only rules out bans) with the same scope and hardness, just reworded.",
+        "Both entries state the identical constraint\u2014bloom filter hits only rule out bans and must be confirmed against source of truth before any action\u2014just with different wording; no added detail or change language."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R12",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "duplicate",
+        "subsumed_by"
+      ],
+      "trials": [
+        "subsumed_by",
+        "subsumed_by",
+        "subsumed_by"
+      ],
+      "prediction": "subsumed_by",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.85,
+        0.85,
+        0.85
+      ],
+      "rationales": [
+        "Incoming restates the same date claim but drops the source citation and lowers confidence, adding no new information; existing has strictly more support (sources: eSafety.gov.au, high confidence).",
+        "Incoming restates the same date claim but drops the source citation and lowers confidence, adding no new information, so it carries strictly less information than the existing entry.",
+        "Incoming restates the same date without the source citation and with lower confidence, so it carries strictly less information than the existing entry."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R13",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumed_by"
+      ],
+      "trials": [
+        "subsumed_by",
+        "subsumed_by",
+        "subsumed_by"
+      ],
+      "prediction": "subsumed_by",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.92,
+        0.92,
+        0.92
+      ],
+      "rationales": [
+        "Incoming restates only the FPR target, dropping the key count, size, rebuild cadence, and confidence level present in the existing entry; it adds no new information despite being newer.",
+        "Incoming only restates the FPR target and drops key size, memory footprint, and rebuild cadence details present in the existing entry, so it adds nothing despite being newer.",
+        "Incoming restates only the FPR target, dropping key count, memory size, and rebuild cadence details present in the existing entry; strictly less information despite being newer."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R14",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumed_by"
+      ],
+      "trials": [
+        "subsumed_by",
+        "subsumed_by",
+        "subsumed_by"
+      ],
+      "prediction": "subsumed_by",
+      "action_expected": [
+        "drop"
+      ],
+      "action_predicted": "drop",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "confidences": [
+        0.88,
+        0.85,
+        0.88
+      ],
+      "rationales": [
+        "The incoming finding restates the same decision with strictly less detail (omits the atomic dual-write-gap-closing mechanism), adding nothing new.",
+        "The incoming finding restates the same decision (RocketMQ transactional messages for ban emits) but with strictly less detail, omitting the atomicity/dual-write-gap rationale present in the existing entry.",
+        "The incoming finding restates the same decision (RocketMQ transactional messages for ban emits) but drops the detail about atomic local write/event commit and closing the dual-write gap, so it carries strictly less information than the existing entry."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R15",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumes"
+      ],
+      "trials": [
+        "subsumes",
+        "subsumes",
+        "subsumes"
+      ],
+      "prediction": "subsumes",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "rationales": [
+        "Incoming restates the same 0.1% FPR target and adds strictly more detail (key count, memory footprint, rebuild cadence) with higher confidence, so it should replace the older, sparser finding.",
+        "Incoming restates the same 0.1% FPR target and adds concrete detail (50M keys, ~180MB memory, nightly rebuild) with higher confidence, strictly extending the existing finding without contradicting it.",
+        "Incoming restates the same 0.1% FPR target and adds concrete detail (key count, memory footprint, rebuild cadence) with higher confidence, strictly containing more information than the existing entry."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R16",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "subsumes",
+        "refines"
+      ],
+      "trials": [
+        "subsumes",
+        "subsumes",
+        "subsumes"
+      ],
+      "prediction": "subsumes",
+      "action_expected": [
+        "supersede"
+      ],
+      "action_predicted": "supersede",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "supersede",
+        "supersede",
+        "supersede"
+      ],
+      "confidences": [
+        0.85,
+        0.85,
+        0.85
+      ],
+      "rationales": [
+        "Incoming keeps the same open status but adds owner assignment and concrete detail (enumerate compensating actions, prototype against staging outbox), strictly more information than the existing entry.",
+        "Incoming keeps status open but adds an owner and concrete detail (enumerate compensating actions, prototype against staging outbox), strictly more information than the existing entry with no contradiction.",
+        "Incoming keeps the same open status but adds an owner and concrete detail (enumerate compensating actions, prototype against staging outbox), strictly extending the existing entry with no contradicting facts."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R17",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.93,
+        0.9,
+        0.9
+      ],
+      "rationales": [
+        "The existing entry describes sizing/rebuild parameters of the bloom filter, while the incoming entry states a read-semantics constraint (always verify on hit against source-of-truth); both are about the same cache but different facets, and neither contains or overrides the other.",
+        "Existing entry describes the bloom filter's sizing/rebuild characteristics, while incoming entry specifies a usage constraint about read-semantics (fall-through on hit); both concern the same cache but different facets and should coexist.",
+        "The existing finding describes the bloom filter's sizing/FPR characteristics, while the incoming constraint specifies read-path behavior (fallback verification on hits); both concern the same cache but address different facets and should coexist."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R18",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "rationales": [
+        "Both entries concern ban-service but address different facets\u2014authentication mechanism vs. rate limiting\u2014so neither constrains or replaces the other; both should stand.",
+        "Both entries concern ban-service but describe different facets\u2014authentication mechanism vs. rate limiting\u2014so neither constrains or contradicts the other.",
+        "Both findings concern ban-service but address different facets\u2014authentication mechanism vs. rate limiting\u2014so neither constrains or replaces the other."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R19",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "complementary"
+      ],
+      "trials": [
+        "complementary",
+        "complementary",
+        "complementary"
+      ],
+      "prediction": "complementary",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.82,
+        0.83,
+        0.83
+      ],
+      "rationales": [
+        "Same subject (coppa-age-gate) but different facets: existing constrains ordering with ban propagation, incoming imposes a distinct deletion-SLA obligation; neither restates or changes the other's claim.",
+        "Both constraints concern the COPPA age gate but address different facets\u2014one governs ordering with ban propagation, the other a deletion-request SLA\u2014so neither supersedes or conflicts with the other.",
+        "Both concern the coppa-age-gate subject but address different facets\u2014existing constrains ordering relative to ban propagation, incoming sets a deletion-SLA requirement\u2014so neither supersedes or conflicts with the other."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R20",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "unrelated"
+      ],
+      "trials": [
+        "unrelated",
+        "unrelated",
+        "unrelated"
+      ],
+      "prediction": "unrelated",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "rationales": [
+        "The two entries concern different services (ban-service vs checkout-service consumers), so despite the identical field name, they describe distinct subjects and neither constrains the other.",
+        "Different services (ban-service vs checkout-service) with their own independent consumer timeout settings; neither constrains the other.",
+        "Different subjects/services (ban-service vs checkout-service consumer timeouts); neither constrains the other despite similar field names."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "R21",
+      "path_expected": "llm",
+      "path_actual": "llm",
+      "expected": [
+        "unrelated"
+      ],
+      "trials": [
+        "unrelated",
+        "unrelated",
+        "unrelated"
+      ],
+      "prediction": "unrelated",
+      "action_expected": [
+        "keep"
+      ],
+      "action_predicted": "keep",
+      "relation_ok": true,
+      "action_ok": true,
+      "unanimous": true,
+      "trial_actions": [
+        "keep",
+        "keep",
+        "keep"
+      ],
+      "confidences": [
+        0.98,
+        0.98,
+        0.98
+      ],
+      "rationales": [
+        "Different jurisdictions and different regulatory subjects (Australia U16 enforcement date vs Florida HB3 parental consent rule); neither constrains the other.",
+        "Different jurisdictions and different regulatory subjects (Australia U16 enforcement date vs Florida HB3 parental consent requirement); neither constrains or informs the other.",
+        "Different jurisdictions and different regulatory subjects (Australia U16 enforcement deadline vs. Florida HB3 parental consent requirement); neither constrains the other."
+      ],
+      "conflicting_fields": [],
+      "overridden_from": [
+        null,
+        null,
+        null
+      ],
+      "downgraded_from": [
+        null,
+        null,
+        null
+      ]
+    }
+  ],
+  "n": 21,
+  "action_correct": 21,
+  "acc_needed": 18,
+  "missed_conflicts": [],
+  "false_conflicts_on_supersede": [],
+  "false_drops": [],
+  "non_unanimous": [],
+  "conflict_cross": [],
+  "path_mismatch": [],
+  "gates": {
+    "missed_conflicts == 0": true,
+    "false_conflicts_on_supersede == 0": true,
+    "false_drops == 0": true,
+    "action_accuracy >= 18/21": true,
+    "non_unanimous <= 3": true,
+    "no action-crossing trials on conflict-expected pairs": true,
+    "prefilter path matches fixture path": true
+  },
+  "passed": true
+}
