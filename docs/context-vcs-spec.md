@@ -50,7 +50,7 @@ Deliver **M0 first as a complete, running end-to-end platform** the team uses da
     migrations/ Alembic
   evals/        fixtures (JSONL) · eval runners · committed reports — §12
   skill/        context-extraction skill (SKILL.md + thin CLI wrapper)
-  cli/          M1: pip-installable `ctxvcs` CLI (login/push/threads/journal/page/search/pull/install-skill)
+  cli/          M1: pip-installable `ctxvcs` CLI (login/push/threads/journal/page/search/pull/blame/install-skill)
   web/          Next.js UI
   deploy/       M1: compose + Caddy config + backup cron for the VM
   ```
@@ -317,6 +317,7 @@ ctxvcs push                        # opens $EDITOR with a notes template; or --f
   -> clean: auto-commit + wiki link   |   conflict: prints the review URL for the admin
 ctxvcs threads | journal | page <subject> | search <q>     # read commands (compiled pages only)
 ctxvcs pull                        # one-shot /context bundle -> paste into any agent
+ctxvcs blame <subject> [field]     # who says so, in what capacity, ever contested? (M1, §9)
 ctxvcs install-skill               # installs the agent skill to ~/.claude/skills, env wired
 ```
 The two paths share everything downstream of extraction: same stage/commit API, same pipeline, same preview semantics. Extraction quality for the notes path is gated by §12.4's notes-based fixtures.
@@ -350,7 +351,11 @@ POST   /repos/{r}/wiki/rebuild    (owner)
 
 # M1: POST /auth/signup {email, password, invite_code} · POST /auth/login -> {token, repo_id} ·
 #     GET /me · stage accepts {raw_notes} (server-side extract) · GET /context (one-shot bundle for `ctxvcs pull`) ·
-#     single-repo mode: server resolves the default repo so clients never handle {r}
+#     single-repo mode: server resolves the default repo so clients never handle {r} ·
+#     GET /entries/{id}/blame -> version chain with author/origin/session/commit/ts, how each version
+#         landed (new | supersede | conflict-resolution {decided_by, rejected value} | edit), and
+#         per-field "value introduced in" — pure read-model composition over entries/commits/conflicts/
+#         staged actions; no schema change; works retroactively
 # M2: /grants + RLS enforcement · /wiki/redlinks · lint report endpoints
 # M3: /branches/* · LCA/merge-base · MCP server surface
 ```
@@ -360,7 +365,7 @@ POST   /repos/{r}/wiki/rebuild    (owner)
 - **Review / merge queue (hero).** Staging preview: incoming entries tagged new / refine / supersede / kept-both / dropped / conflict. Conflicts render current vs incoming side by side with the classifier's rationale, confidence, conflicting fields, and **each side's origin (human/agent) + session + timestamp**. Accept / edit / reject map to `commit` resolutions. Build this first and best.
 - **Wiki browser.** Open-threads as the default landing tab; journal; index navigation; subject pages with the serve-time conflict overlay; a search box over `/wiki/search`.
 
-M1 screens: **signup/login + onboarding** (register with invite code → shown exactly two commands: `pipx install ctxvcs`, `ctxvcs login` → first-push walkthrough); settings auto-configured by login (no API-URL/repo-id/token pasting anywhere); pending-review badge for the admin. M2: grants admin, lint reports, redlink queue. M3: schema editor.
+M1 screens: **signup/login + onboarding** (register with invite code → shown exactly two commands: `pipx install ctxvcs`, `ctxvcs login` → first-push walkthrough); settings auto-configured by login (no API-URL/repo-id/token pasting anywhere); pending-review badge for the admin; **zh-CN UI chrome** (all navigation, buttons, form labels, review-screen strings via a locale dictionary; default zh-CN, en toggle — compiled page/entry content stays English by explicit assumption, no template localization); **blame panel (溯源)** — click any Facts row or entry on a subject page → provenance timeline from `GET /entries/{id}/blame`: who pushed each version, human vs agent, which session, and whether it survived a conflict (showing the rejected value and who decided). M2: grants admin, lint reports, redlink queue. M3: schema editor.
 
 ## 11. Milestones
 
@@ -387,6 +392,8 @@ Scope:
 - **`ctxvcs` CLI (pipx-installable):** `login` · `push` (notes via `$EDITOR`/`--file`/`--stdin` → server-side extraction → terminal preview → auto-commit when clean, review URL on conflict) · `threads` / `journal` / `page` / `search` · `pull` (one-shot `/context` bundle) · `install-skill`. See §8.
 - **Server-side extraction:** the §5 extract node; same versioned `llm/prompts/extract.md`; subject registry injected in-prompt; gated by §12.4 extended with notes-based fixtures (N1–N2).
 - **UX:** onboarding page (register → two copy-paste commands → first-push walkthrough); zero token/repo-id handling anywhere in UI or CLI; admin pending-review badge. Notifications beyond the badge are out of scope.
+- **Chinese UI chrome + Chinese SOP (added 2026-07-05; the demo team reads Chinese):** every UI string (nav, buttons, forms, review screen, onboarding) served from a locale dictionary, zh-CN default with an en toggle; `docs/SOP.zh-CN.md` written fresh against the M1 flows (signup → install → push → review), not translated from the M0 SOP. **Explicit assumption:** entry content, compiled wiki pages, and search stay English — no template localization, no Chinese fixtures, no search changes (revisit at M2 if the assumption breaks in practice).
+- **Context blame — 溯源 (added 2026-07-05; trust drill-down, a product differentiator):** for any fact or entry on master, answer "who says so, in what capacity, and was it ever contested?" `GET /entries/{id}/blame` (§9) + the subject-page blame panel (§10) + `ctxvcs blame <subject> [field]`. Shows the full version chain — author, human-vs-agent origin, session, commit, timestamp — and how each version landed: clean push, supersede, or **conflict resolution** (including the rejected value and who decided). Pure read composition over existing provenance/conflict/staging records; no schema change; retroactive. Deterministic ⇒ invariant tests + golden-scenario assertions, no LLM eval (§12.5).
 - **Cost control:** gate-then-switch candidate = Haiku 4.5 (~70% cheaper); adopt only on an all-green §12.2 run against it, report committed either way.
 - **Eval discipline carries over:** every real-use misclassification becomes a fixture before it is fixed; the ≥40-pair M0 floor only grows.
 
@@ -397,6 +404,8 @@ Acceptance (scripted, then two weeks of friend-team dogfood):
 - Any member reads master via UI and CLI without ever seeing a token or repo id.
 - VM reboot ⇒ platform back up unattended; a restore-from-backup drill succeeds on a scratch VM.
 - Model downshift decision documented: an all-green (adopted) or failing (rejected) §12.2 report on the candidate model, committed.
+- A Chinese-reading teammate completes signup → install → push → review with every UI string in Chinese, guided only by `docs/SOP.zh-CN.md`.
+- Blame on a conflict-resolved fact (the S1 shape) returns the full story — both versions' authors and origins, the rejected value, the decider, the commits — via API, UI panel, and CLI; output byte-stable across recompiles/rebuilds.
 
 ### M2 — trust and depth (was M1)
 Label RLS enforcement (dedicated RLS-subject app role; compiler/lint under a privileged service role; verify enforcement by querying as the app role directly) · complementary merge (deterministic field union, `llm/merge_body`, revalidate, scalar collision ⇒ `contradicts`) · rating gate (`schema_completeness`, `provenance_present`, `specificity`, redundancy penalty; below threshold ⇒ review) · semantic intra-push dedup · nightly lint (master-vs-master sweep within subject clusters + budgeted near-neighbor pairs ⇒ `origin='lint'` MRs; invariants: input_hash recompute, `master_entries` ≡ HEAD, page lag bound) · `## Current understanding` synthesis with input-hash gating + `wiki_page_versions` · redlinks · Celery/Redis swap-in · eval expansion per §12: grow the fixture set to ≥60 pairs, add model-version regression tracking and per-relation trend reports in CI; `contradicts` recall and `refines`-vs-`contradicts` separation remain the headline metrics.
@@ -483,4 +492,5 @@ Code-source binding / code-change staleness; distributed/p2p; CRDTs; delta-compr
 - All LLM calls behind `llm/` interfaces with deterministic fakes; unit tests never hit the real API. Live-model evaluation is governed by §12 (`EVAL_LIVE`-gated runners, committed reports).
 - Invariant tests: content-hash canonicalization stability; `master_entries` ≡ HEAD tree after every commit; commit-transaction atomicity under injected failure; identity rules (supersede keeps `entry_id`; nothing ever aliases two existing ids); **routing rules (2026-07-04): no batch applies two supersedes to one `entry_id`; a non-same-type supersede of an `x-lifecycle` entry is always downgraded to keep; entry type never mutates under a stable `entry_id` on master**.
 - Compiler: deterministic pages byte-stable across recompiles; memoization verified (unchanged input hash ⇒ zero writes); rebuild-from-scratch equivalence.
+- Blame (M1): deterministic — invariant tests assert the version chain, per-field introduction points, and conflict-resolution attribution (decider + rejected value) against golden-scenario end states; never an LLM judge.
 - All thresholds/weights in a typed config object; no magic numbers in logic.
