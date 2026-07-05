@@ -17,16 +17,20 @@ def _t(
     required: list[str] | None = None,
     embed: list[str] | None = None,
     collision_exempt: list[str] | None = None,
+    lifecycle: bool = False,
 ) -> dict:
     props = {"subject": {"type": "string", "minLength": 1}, **properties}
     return {
         "x-subject-key": "subject",
-        "x-access-default": [],  # recorded M0, enforced M1
+        "x-access-default": [],  # recorded M0, enforced M2
         "x-embed-fields": embed or ["subject"],
         # lifecycle/metadata fields, not fact claims: exempt from the §6 collision
         # prefilter (confidence revisions, status closes, event descriptions are the
         # normal session pattern — seed fixtures R07/R08/R12/R13/R15 pin this down)
         "x-collision-exempt": collision_exempt or [],
+        # open/closable work items: only their own type may supersede them
+        # (§6 routing rule 1; dogfood fixtures R22-R25 pin this down)
+        "x-lifecycle": lifecycle,
         "schema": {
             "type": "object",
             "properties": props,
@@ -68,6 +72,7 @@ DEFAULT_ENTRY_TYPES: dict[str, dict] = {
         required=["status"],
         embed=["subject"],
         collision_exempt=["status", "blocking"],
+        lifecycle=True,
     ),
     "next_step": _t(
         {
@@ -77,6 +82,7 @@ DEFAULT_ENTRY_TYPES: dict[str, dict] = {
         required=["status"],
         embed=["subject"],
         collision_exempt=["status", "owner"],
+        lifecycle=True,
     ),
     "constraint": _t(
         {

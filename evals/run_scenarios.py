@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ctxvcs.config import settings  # noqa: E402
 from ctxvcs.store.db import session_factory  # noqa: E402
 
-from evals.scenario_lib import run_s1, run_s2  # noqa: E402
+from evals.scenario_lib import run_s1, run_s2, run_s3  # noqa: E402
 
 REPORTS = Path(__file__).resolve().parent / "reports"
 
@@ -33,12 +33,12 @@ def main() -> int:
             print("live run refused: set EVAL_LIVE=1 (§12.1)", file=sys.stderr)
             return 2
         cfg = settings()
-        print(f"live scenarios: ~22 classifier calls to {cfg.reconcile_model} + embeddings")
+        print(f"live scenarios: ~26 classifier calls to {cfg.reconcile_model} + embeddings")
     else:
         os.environ.setdefault("CTXVCS_EMBED_PROVIDER", "fake")
 
     runs = []
-    for fn in (run_s1, run_s2):
+    for fn in (run_s1, run_s2, run_s3):
         with session_factory()() as session:
             runs.append(fn(session, args.mode))
 

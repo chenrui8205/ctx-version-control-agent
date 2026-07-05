@@ -33,6 +33,10 @@ from ctxvcs.store.models import Conflict, MergeRequest, StagedEntries
 RELATION_PRECEDENCE = ["contradicts", "duplicate", "subsumed_by", "subsumes", "refines", "complementary", "unrelated"]
 
 
+def _is_lifecycle(entry_types: dict, type_: str) -> bool:
+    return bool(entry_types.get(type_, {}).get("x-lifecycle"))
+
+
 class PipelineState(TypedDict, total=False):
     repo_id: str
     parent_commit: str | None
@@ -167,7 +171,22 @@ def build_pipeline(ctx: PipelineContext):
                           "conflicting_fields": po.result.conflicting_fields, "path": po.path,
                           "subject_key": inc["subject_key"], "type": inc["type"]}
                 if rel == "complementary":
-                    action["action"] = "keep"  # M0: keep both (§6); merge_body is M1
+                    action["action"] = "keep"  # M0: keep both (§6); merge_body is M2
+                # §6 routing rule 1 (2026-07-04, dogfood DF-1/2/4): an x-lifecycle entry
+                # (open_question/next_step) may only be superseded by its own type — its
+                # close or revision. Entries that answer/implement/restate it are new
+                # standing records; a cross-type supersede silently retires open work or
+                # eats decision records. Deterministic — holds even when the model errs.
+                if (
+                    action["action"] == "supersede"
+                    and _is_lifecycle(ctx.entry_types, c["type"])
+                    and inc["type"] != c["type"]
+                ):
+                    action["downgraded_from"] = "supersede"
+                    action["action"] = "keep"
+                    action["rationale"] += (
+                        " [routing rule 1: cross-type supersede of a lifecycle entry downgraded to keep-both]"
+                    )
                 if rel == "contradicts":
                     conflicts.append({
                         "temp_id": inc["id"],
@@ -179,10 +198,48 @@ def build_pipeline(ctx: PipelineContext):
                         "confidence": po.result.confidence,
                         "conflicting_fields": po.result.conflicting_fields,
                         "rationale": po.result.rationale,
-                        # proposal only — a human decides every contradicts on master (§ Core 8)
-                        "proposed_resolution": {"action": "supersede", "winner": "incoming"},
+                        # no default winner (2026-07-04, dogfood DF-3): a suggested
+                        # winner invites one-click enshrinement of stale assertions;
+                        # the human chooses explicitly in the review UI (§ Core 8)
+                        "proposed_resolution": {},
                     })
             actions.append(action)
+
+        # §6 routing rule 2 (2026-07-04, dogfood DF-1): apply_actions must never execute
+        # two supersedes against one target entry_id — last-writer-wins silently destroys
+        # the first while the preview claims "supersede". Keep the highest-confidence one
+        # as the proposal; every extra fails closed into an ambiguous_supersede conflict.
+        by_target: dict[str, list[dict]] = {}
+        for a in actions:
+            if a["action"] == "supersede" and a.get("target_entry_id"):
+                by_target.setdefault(a["target_entry_id"], []).append(a)
+        for target_id, group in by_target.items():
+            if len(group) <= 1:
+                continue
+            group.sort(key=lambda a: (-(a.get("confidence") or 0.0), a["temp_id"]))
+            for extra in group[1:]:
+                extra["downgraded_from"] = "supersede"
+                extra["action"] = "conflict"
+                extra["relation"] = "ambiguous_supersede"
+                extra["rationale"] += (
+                    " [routing rule 2: another entry in this push already supersedes the same target;"
+                    " a human must decide which (if any) applies]"
+                )
+                conflicts.append({
+                    "temp_id": extra["temp_id"],
+                    "subject_key": extra["subject_key"],
+                    "existing_entry_id": target_id,
+                    "existing_content_hash": extra["target_content_hash"],
+                    "existing_commit": _introducing_commit(
+                        ctx, state["repo_id"],
+                        {"entry_id": target_id, "content_hash": extra["target_content_hash"]},
+                    ),
+                    "relation": "ambiguous_supersede",
+                    "confidence": extra.get("confidence"),
+                    "conflicting_fields": extra.get("conflicting_fields") or [],
+                    "rationale": extra["rationale"],
+                    "proposed_resolution": {},
+                })
         return {**state, "proposed_actions": actions, "conflicts": conflicts}
 
     def apply_actions(state: PipelineState) -> PipelineState:

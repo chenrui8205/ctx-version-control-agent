@@ -81,13 +81,13 @@ M0 ships these built-in entry types; `POST /schema` can extend or override them,
 - **decision** — fields: `chosen` (string), `alternatives` (list), `rationale` in body. A human decision that shapes the work.
 - **finding** — fields: `sources` (list of URLs/refs), `confidence` (low|med|high). Agent research output.
 - **state_change** — fields: `what_changed` (string), `where` (string, e.g. repo/path/service). What was actually done this session.
-- **open_question** — fields: `status` (open|closed), `blocking` (bool).
-- **next_step** — fields: `status` (open|closed), `owner` (string, optional).
+- **open_question** — fields: `status` (open|closed), `blocking` (bool). `x-lifecycle: true`.
+- **next_step** — fields: `status` (open|closed), `owner` (string, optional). `x-lifecycle: true`.
 - **constraint** — fields: `kind` (technical|legal|product), `hard` (bool). Standing constraints and gotchas.
 
 Lifecycle rule: closing an `open_question`/`next_step` is a **refines** push (new version with `status: closed`, superseding the open one) — no separate close endpoint or machinery.
 
-Schema extensions per type: `x-subject-key`, `x-access-default` (labels; recorded in M0, enforced in M2), `x-embed-fields`, `x-collision-exempt` (lifecycle/metadata fields — e.g. `status`, `confidence` — excluded from the §6 collision prefilter; added during M0 eval iteration). Push-time validation is JSON Schema per entry; hard failure ⇒ 422 with violations. No LLM.
+Schema extensions per type: `x-subject-key`, `x-access-default` (labels; recorded in M0, enforced in M2), `x-embed-fields`, `x-collision-exempt` (lifecycle/metadata fields — e.g. `status`, `confidence` — excluded from the §6 collision prefilter; added during M0 eval iteration), `x-lifecycle` (marks types whose entries represent open/closable work items; drives the §6 lifecycle-supersede protection; added 2026-07-04 from the dogfood e2e). Push-time validation is JSON Schema per entry; hard failure ⇒ 422 with violations. No LLM.
 
 ## 4. Data model
 
@@ -260,8 +260,12 @@ Routing table (relation → action; identity rule in parentheses):
 - **subsumes** → supersede `c` with incoming (adopts `c.entry_id`; old marked `superseded_by` in provenance).
 - **refines** → clean update: supersede, same identity rule. The dominant session pattern — including status closes (§3). No human review.
 - **complementary** → **M0/M1: keep both** (both entries live under their own ids). M2: deterministic field union + `llm/merge_body` + schema revalidation; same-scalar collision promotes to `contradicts`; the LLM never picks a scalar.
-- **contradicts** → conflict: persist under a Merge Request; a human decides. Default proposal `{"action":"supersede","winner":"incoming"}` — proposal only. Review UI shows each side's `origin` (human vs agent) and timestamps.
+- **contradicts** → conflict: persist under a Merge Request; a human decides. **No default winner is proposed** (amended 2026-07-04: the original `{"winner":"incoming"}` default would enshrine stale assertions on a one-click resolve — dogfood DF-3). The review UI shows each side's `origin` (human vs agent), timestamps, and the existing side's commit age; the human must choose explicitly.
 - **unrelated** → new entry, fresh permanent `entry_id`.
+
+**Deterministic post-classification routing rules** (amended 2026-07-04 from the dogfood e2e report, `evals/reports/20260704-dogfood-e2e.md`; these run in the routing table AFTER the classifier and are not model-dependent):
+1. **Lifecycle-supersede protection (DF-1/2/4).** An entry of an `x-lifecycle` type (open_question, next_step) may only be superseded by an entry of the **same type** — its own close or revision. A refines/subsumes verdict from any other type is downgraded to keep-both; the preview marks it `downgraded_from` so the human sees the override. Rationale: entries that *answer* a question, *implement* a step, or *restate* a resolution are new standing records, not new versions of the work item — the week's dogfood lost both team decisions and silently retired an open step to this misclassification. Cross-type supersede between fact types (e.g. R06's state_change superseding a stale finding) remains valid and is untouched.
+2. **One supersede per target per batch (DF-1).** `apply_actions` must never apply two supersedes to the same target `entry_id` in one push — last-writer-wins silently destroys the first (the preview says "supersede" while the effect is an unlabeled drop). After rule 1 downgrades, if more than one supersede still targets one entry, fail closed: persist `ambiguous_supersede` conflict rows for the extras and route the push to review, like a contradiction.
 
 `reconcile` returns strict JSON via tool output: `{relation, confidence, rationale, conflicting_fields[]}`. Config: `TAU_CONF` 0.82, `CONF_MIN` 0.6 (below it, downgrade `contradicts` per config). No literals in code. Granularity is entry-level; leave an `llm/claim_extractor` seam, do not implement.
 
@@ -375,6 +379,8 @@ Acceptance (scripted end-to-end, then a week of real use):
 ### M1 — hosted, self-serve, friend-usable (the demo-team milestone)
 Goal: a real team — not platform builders, not necessarily technical — dogfoods the tool on a demo project with zero hand-holding. Everything that doesn't serve that is deferred.
 
+**Entry gate (pre-M1 hardening, 2026-07-04):** the dogfood-e2e defect fixes land before any M1 feature work — §6 routing rules 1–2 (lifecycle-supersede protection, one-supersede-per-target), no-default conflict winner, reconcile prompt cross-type guidance, the §14 routing invariants, a golden scenario asserting decision+close in one push both survive, and an all-green live reconcile run on the grown (≥25-pair) fixture set with the report committed.
+
 Scope:
 - **Hosting:** one cloud VM (Hetzner/DO class) running the local `docker-compose` behind Caddy (TLS, real domain, HTTPS-only); nightly `pg_dump` to object storage; `deploy/` scripts in-repo; restart-on-reboot. Infra budget ≤ ~$15/mo (LLM spend is the real cost — see the §1 gate-then-switch rule).
 - **Self-serve accounts (single-repo mode):** `POST /auth/signup` (email + password + shared `INVITE_CODE`), `POST /auth/login`; bcrypt password hashes; login mints/regenerates the member's API token server-side; signup auto-joins the server's `DEFAULT_REPO`; exactly one admin (the repo owner). No grants, no labels, no finer permissions — that is M2.
@@ -427,7 +433,7 @@ Fixture schema (JSONL, one pair per line):
 ```
 `expected` may be replaced by `expected_any: [...]` where two relations map to the same action and either is acceptable. `path` marks whether the pair should enter constrained collision adjudication (`collision`) or the open classifier (`llm`).
 
-Protocol: for each pair, call the real `llm/reconcile` **3 times**; majority vote is the prediction; report the flip rate and list every non-unanimous pair with all three outputs. Seed set = 21 pairs (provided), covering all seven relations, both collision-path cases, the refines-vs-contradicts boundary trap (R06), a cross-subject embedding trap (R20), and `expected_any` pairs where `refines`/`subsumes` are interchangeable.
+Protocol: for each pair, call the real `llm/reconcile` **3 times**; majority vote is the prediction; report the flip rate and list every non-unanimous pair with all three outputs. Seed set = 21 pairs (provided), covering all seven relations, both collision-path cases, the refines-vs-contradicts boundary trap (R06), a cross-subject embedding trap (R20), and `expected_any` pairs where `refines`/`subsumes` are interchangeable. Grown per §12.6.4: **R22–R25** (2026-07-04, dogfood e2e) cover the cross-type-supersede family — state_change vs open next_step, decision vs open question, finding vs closed question — where the correct relation is `complementary`; gates apply to the full grown set.
 
 Scoring at two levels:
 - **Relation-level** (diagnostic): full 7×7 confusion matrix in the report.
@@ -475,6 +481,6 @@ Code-source binding / code-change staleness; distributed/p2p; CRDTs; delta-compr
 
 ## 14. Testing / quality bar
 - All LLM calls behind `llm/` interfaces with deterministic fakes; unit tests never hit the real API. Live-model evaluation is governed by §12 (`EVAL_LIVE`-gated runners, committed reports).
-- Invariant tests: content-hash canonicalization stability; `master_entries` ≡ HEAD tree after every commit; commit-transaction atomicity under injected failure; identity rules (supersede keeps `entry_id`; nothing ever aliases two existing ids).
+- Invariant tests: content-hash canonicalization stability; `master_entries` ≡ HEAD tree after every commit; commit-transaction atomicity under injected failure; identity rules (supersede keeps `entry_id`; nothing ever aliases two existing ids); **routing rules (2026-07-04): no batch applies two supersedes to one `entry_id`; a non-same-type supersede of an `x-lifecycle` entry is always downgraded to keep; entry type never mutates under a stable `entry_id` on master**.
 - Compiler: deterministic pages byte-stable across recompiles; memoization verified (unchanged input hash ⇒ zero writes); rebuild-from-scratch equivalence.
 - All thresholds/weights in a typed config object; no magic numbers in logic.

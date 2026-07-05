@@ -152,6 +152,7 @@ def commit_staged(
         inserts: list[tuple[dict, uuid.UUID]] = []  # (entry json, permanent id)
         supersessions: list[tuple[str, str]] = []  # (old_hash, new_hash)
         changed: list[uuid.UUID] = []
+        superseded_targets: set[uuid.UUID] = set()  # §6 routing rule 2 backstop
 
         for action in staged.proposed_actions or []:
             e = entries_by_id.get(action["temp_id"])
@@ -189,6 +190,15 @@ def commit_staged(
                 old_hash = new_tree.get(eid)
                 if old_hash == e["content_hash"]:
                     continue  # no-op version
+                if eid in superseded_targets:
+                    # last-writer-wins would silently destroy the earlier version — the
+                    # preview promised "supersede", the effect would be an unlabeled drop.
+                    # Resolutions must keep at most one incoming per target.
+                    raise CommitError(
+                        f"two supersedes target entry {eid} in one commit (§6 routing rule 2); "
+                        "resolve by keeping at most one incoming for this target"
+                    )
+                superseded_targets.add(eid)
                 new_tree[eid] = e["content_hash"]
                 inserts.append((e, eid))
                 if old_hash:

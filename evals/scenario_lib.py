@@ -227,6 +227,60 @@ def run_s2(session: Session, mode: str = "fake") -> ScenarioRun:
     return r
 
 
+def run_s3(session: Session, mode: str = "fake") -> ScenarioRun:
+    """Routing rule 1 (2026-07-04, dogfood DF-1b): a decision and the question's
+    lifecycle close pushed together must BOTH survive — the decision as a new standing
+    record, the close as the question's supersede. Fake mode scripts the historical
+    misclassification (decision refines question) to prove the deterministic downgrade
+    holds even when the classifier errs."""
+    sc = load_scenario("s3")
+    r = ScenarioRun(sc["name"])
+    nonce = uuid.uuid4().hex[:8]
+    repo, _tok = create_repo(session, f"s3-{nonce}", "eval")
+    session.commit()
+    compile_pages(session, repo.id, None)
+
+    seed_commit(session, repo.id, sc, nonce, mode)
+    tree0 = master_tree(session, repo.id)
+    by_key_seed = _entries_by_key(session, sc["seed"], nonce)
+    question_id = _tree_id_for(tree0, by_key_seed["seed-question"])
+    ot0 = serve_page(session, repo.id, "open-threads")["content"]
+    r.add("open-threads lists the question before the push", "leftover indivisible cents" in ot0)
+
+    ctx = make_ctx(session, repo.id, sc, mode)
+    state = run_stage(ctx, repo.id, "resolver",
+                      [raw_entry(s, nonce) for s in sc["push"]], sc.get("push_summary", "push"))
+    keys = _key_by_temp(state["incoming_entries"])
+    got = {keys[a["temp_id"]]: a["action"] for a in state["proposed_actions"]}
+    r.add("actions: decision kept, close supersedes", got == sc["expected_actions"],
+          json.dumps(got, sort_keys=True))
+    if mode == "fake":
+        dec_action = next(a for a in state["proposed_actions"] if keys[a["temp_id"]] == "p-decision")
+        r.add("scripted misclassification visibly downgraded (rule 1)",
+              dec_action.get("downgraded_from") == "supersede", json.dumps(dec_action))
+    r.add("clean session — no MR", state["merge_status"] == "clean")
+
+    cstate = run_commit(ctx, uuid.UUID(state["staging_id"]))
+    r.add("commit succeeds", cstate["merge_status"] == "committed", str(cstate.get("error")))
+
+    tree1 = master_tree(session, repo.id)
+    by_key_push = _entries_by_key(session, sc["push"], nonce)
+    r.add("master holds both records", len(tree1) == 2, f"{len(tree1)} entries")
+    r.add("close superseded the question under its stable entry_id",
+          tree1.get(question_id) == by_key_push["p-close"])
+    r.add("decision survives under its own fresh entry_id",
+          by_key_push["p-decision"] in tree1.values())
+    row = session.get(EntryRow, tree1.get(question_id))
+    r.add("no type mutation under the stable entry_id (§14)",
+          row is not None and row.type == "open_question", getattr(row, "type", None))
+
+    ot = serve_page(session, repo.id, "open-threads")["content"]
+    r.add("open-threads no longer lists the question", "leftover indivisible cents" not in ot)
+    subject = serve_page(session, repo.id, "cent-allocation")["content"]
+    r.add("subject page carries the decision", "largest-remainder" in subject and "chosen" in subject)
+    return r
+
+
 def _entries_by_key(session: Session, specs: list[dict], nonce: str) -> dict[str, str]:
     """fixture key -> content_hash (recomputed the same way the pipeline does)."""
     from ctxvcs.core.canonical import content_hash

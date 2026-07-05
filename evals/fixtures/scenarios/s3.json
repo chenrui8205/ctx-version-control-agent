@@ -1,0 +1,28 @@
+{
+  "name": "S3 — decision + close in one push both survive (routing rule 1; dogfood DF-1b)",
+  "seed": [
+    {"key": "seed-question", "type": "open_question", "subject": "cent-allocation",
+     "fields": {"status": "open", "blocking": true},
+     "body": "How do we allocate leftover indivisible cents on uneven splits? Blocks settle-up.",
+     "ts": "2026-07-01", "origin": "human"}
+  ],
+  "seed_summary": "kickoff: open the cent-allocation question",
+  "push": [
+    {"key": "p-decision", "type": "decision", "subject": "cent-allocation",
+     "fields": {"chosen": "largest-remainder; payer absorbs residual cent",
+                "alternatives": ["round-robin extra cents", "random assignment"]},
+     "body": "Decided: largest-remainder allocation; the payer absorbs the residual cent. Deterministic and testable.",
+     "ts": "2026-07-03", "origin": "human"},
+    {"key": "p-close", "type": "open_question", "subject": "cent-allocation",
+     "fields": {"status": "closed", "blocking": false},
+     "body": "Closed: resolved by the largest-remainder decision.",
+     "ts": "2026-07-03", "origin": "human"}
+  ],
+  "push_summary": "resolve cent allocation: decision + lifecycle close in one push",
+  "script": [
+    {"incoming": "p-decision", "existing": "seed-question", "relation": "refines"},
+    {"incoming": "p-close", "existing": "seed-question", "relation": "refines"}
+  ],
+  "script_note": "fake mode deliberately scripts the DF-1b MISCLASSIFICATION (decision refines question) — the scenario asserts routing rule 1 downgrades it and both records survive even when the classifier errs",
+  "expected_actions": {"p-decision": "keep", "p-close": "supersede"}
+}

@@ -1,4 +1,7 @@
-# Reconcile relation classifier — prompt v1
+# Reconcile relation classifier — prompt v2
+<!-- v2 (2026-07-04): cross-type prior added after the dogfood e2e (fixtures R22-R25);
+     v1 over-fired refines on cross-type pairs, eating decisions and open work items -->
+
 
 You compare an INCOMING entry produced by a just-finished working session against ONE
 EXISTING entry from the team's canonical master context, and classify their relation.
@@ -34,12 +37,26 @@ alongside it, or escalated to a human as a conflict. Precision matters — a wro
    If the newer side frames the difference as a change or event ("load test led us to
    change…", "migrated…", "written and linked…"), choose `refines` (or `subsumes` if it
    also restates everything the old entry said). Never `contradicts` in that case.
+   A status transition (open → closed, done) counts as `refines` only when the incoming
+   entry is the SAME kind of record — the question's or step's own new version.
 3. **Reserve `contradicts` for double-current claims.** Both sides state, in present
    tense, incompatible facts or standing decisions, and nothing in either text orders
    one after the other. Timestamps alone do NOT resolve a contradiction — a newer
    present-tense claim with no change language still contradicts an older one.
 4. **Information containment beats recency.** Strictly-less-info ⇒ `subsumed_by`;
    strictly-more-info ⇒ `subsumes`; overlapping-but-different facets ⇒ `complementary`.
+5. **Different KINDS of record stand side by side.** When the two entries are different
+   types and the incoming one *responds to* the existing one — a decision that ANSWERS
+   an open question, a state_change that IMPLEMENTS, executes, or COMPLETES the work a
+   next_step describes, a finding that RESTATES a resolved question's outcome — that is
+   `complementary`, NOT `refines` or `subsumes`. This holds even when the incoming entry
+   reports that the step's work is fully done and verified: the record of what was built
+   and the task that asked for it are different records, and the task's own status-close
+   (same type, status → closed) arrives as a separate entry. Replacing the work item
+   with the responding record silently deletes the team's question/task or its answer.
+   Reserve cross-type `refines`/`subsumes` for one case: the incoming entry updates or
+   corrects the SAME FACT the existing entry asserts (e.g. a state_change "changed
+   timeout from 60s to 30s" superseding a finding that says "timeout is 60s").
 
 ## Constrained mode
 
