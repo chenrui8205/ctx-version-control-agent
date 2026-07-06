@@ -49,6 +49,8 @@ class Member(Base):
     principal: Mapped[str] = mapped_column(Text, primary_key=True)
     role: Mapped[str | None] = mapped_column(Text)
     api_token_hash: Mapped[str | None] = mapped_column(Text)
+    password_hash: Mapped[str | None] = mapped_column(Text)  # M1 self-serve accounts
+    display_name: Mapped[str | None] = mapped_column(Text)
 
 
 class SchemaVersion(Base):

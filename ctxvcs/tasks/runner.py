@@ -17,11 +17,13 @@ from ctxvcs.store.repo_ops import current_schema
 def build_context(session: Session, repo_id: uuid.UUID) -> PipelineContext:
     from ctxvcs.embed import get_embedder
     from ctxvcs.llm.claude import ClaudeReconcileClient
+    from ctxvcs.llm.extract import ClaudeExtractClient
 
     return PipelineContext(
         session=session,
         embedder=get_embedder(),
         reconciler=ClaudeReconcileClient(),
+        extractor=ClaudeExtractClient(),
         entry_types=current_schema(session, repo_id).entry_types,
         cfg=settings(),
         after_commit=lambda commit_hash, changed: run_compile(session, repo_id, changed),
@@ -71,13 +73,14 @@ def _dispatch(session: Session, job: Job) -> dict:
         ctx = build_context(session, repo_id)
         state = run_stage(
             ctx, repo_id, p["author"], p["raw_entries"], p.get("session_summary") or "",
-            p.get("parent_commit"),
+            p.get("parent_commit"), raw_notes=p.get("raw_notes"),
         )
         return {
             "staging_id": state.get("staging_id"),
             "merge_status": state.get("merge_status"),
             "proposed_actions": state.get("proposed_actions"),
             "conflicts": state.get("conflicts"),
+            "session_summary": state.get("session_summary"),
             "merge_request_id": state.get("merge_request_id"),
             "error": state.get("error"),
         }

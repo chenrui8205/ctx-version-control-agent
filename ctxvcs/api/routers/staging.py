@@ -16,7 +16,8 @@ router = APIRouter()
 
 class StageBody(BaseModel):
     parent_commit: str | None = None
-    entries: list[dict]
+    entries: list[dict] = []
+    raw_notes: str = ""  # M1 standalone push: server-side extraction (§8)
     session_summary: str = ""
 
 
@@ -33,8 +34,8 @@ def post_stage(
     member: Member = Depends(require_member),
 ):
     """Two-phase push, phase 1 (§ Core 7): dry-run — writes nothing to master."""
-    if not body.entries:
-        raise HTTPException(422, "entries must be non-empty")
+    if bool(body.entries) == bool(body.raw_notes.strip()):
+        raise HTTPException(422, "provide exactly one of entries (skill path) or raw_notes (CLI push)")
     job_id = runner.enqueue(
         session,
         "stage",
@@ -42,6 +43,7 @@ def post_stage(
             "repo_id": str(r),
             "author": member.principal,
             "raw_entries": body.entries,
+            "raw_notes": body.raw_notes,
             "session_summary": body.session_summary,
             "parent_commit": body.parent_commit,
         },

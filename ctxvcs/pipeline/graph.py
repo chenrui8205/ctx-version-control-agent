@@ -43,6 +43,7 @@ class PipelineState(TypedDict, total=False):
     mode: str  # 'stage' | 'commit'
     author: str
     session_summary: str
+    raw_notes: str  # M1 standalone push: server-side extraction input (§8)
     raw_entries: list[dict]
     incoming_entries: list[dict]
     proposed_actions: list[dict]
@@ -63,6 +64,7 @@ class PipelineContext:
     reconciler: ReconcileClient
     entry_types: dict
     cfg: Settings = field(default_factory=settings)
+    extractor: object | None = None  # ExtractClient; required only for the raw_notes path
     # called after a successful commit txn: (commit_hash, changed_entry_ids)
     after_commit: Callable[[str, list[uuid.UUID]], None] = lambda *_: None
 
@@ -108,6 +110,31 @@ def _candidates(ctx: PipelineContext, repo_id: str, entry: dict) -> list[dict]:
 
 
 def build_pipeline(ctx: PipelineContext):
+    def extract(state: PipelineState) -> PipelineState:
+        """M1 §5: optional node ahead of validate — raw notes → candidate entries via
+        llm/extract with the subject registry passed in-prompt. Skill-path pushes
+        (raw_entries already structured) never enter here."""
+        from datetime import UTC, datetime
+
+        from ctxvcs.store.repo_ops import subject_registry
+
+        notes = (state.get("raw_notes") or "").strip()
+        if len(notes) > ctx.cfg.raw_notes_max_chars:
+            return {**state, "error": {"kind": "extraction",
+                                       "detail": f"raw_notes exceed {ctx.cfg.raw_notes_max_chars} chars"},
+                    "merge_status": "error"}
+        registry = [s["subject_key"] for s in subject_registry(ctx.session, uuid.UUID(state["repo_id"]))]
+        try:
+            result = ctx.extractor.extract(notes, registry, ctx.entry_types,
+                                           today=datetime.now(UTC).date().isoformat())
+        except Exception as e:  # extraction is a terminal error, same contract as validate
+            return {**state, "error": {"kind": "extraction", "detail": str(e)}, "merge_status": "error"}
+        if not result.get("entries"):
+            return {**state, "error": {"kind": "extraction", "detail": "no entries extracted from notes"},
+                    "merge_status": "error"}
+        return {**state, "raw_entries": result["entries"],
+                "session_summary": state.get("session_summary") or result.get("session_summary", "")}
+
     def validate(state: PipelineState) -> PipelineState:
         try:
             entries = validate_entries(state["raw_entries"], ctx.entry_types)
@@ -305,12 +332,16 @@ def build_pipeline(ctx: PipelineContext):
         return state
 
     g = StateGraph(PipelineState)
+    g.add_node("extract", extract)
     g.add_node("validate", validate)
     g.add_node("embed", embed)
     g.add_node("reconcile", reconcile)
     g.add_node("apply_actions", apply_actions)
     g.add_node("router", router)
-    g.set_conditional_entry_point(lambda s: "apply_actions" if s["mode"] == "commit" else "validate")
+    g.set_conditional_entry_point(
+        lambda s: "apply_actions" if s["mode"] == "commit"
+        else ("extract" if s.get("raw_notes") and not s.get("raw_entries") else "validate"))
+    g.add_conditional_edges("extract", lambda s: END if s.get("error") else "validate")
     g.add_conditional_edges("validate", lambda s: END if s.get("error") else "embed")
     g.add_edge("embed", "reconcile")
     g.add_edge("reconcile", "apply_actions")
@@ -325,11 +356,13 @@ def _introducing_commit(ctx: PipelineContext, repo_id: str, candidate: dict) -> 
 
 
 def run_stage(ctx: PipelineContext, repo_id: uuid.UUID, author: str, raw_entries: list[dict],
-              session_summary: str, parent_commit: str | None = None) -> PipelineState:
+              session_summary: str, parent_commit: str | None = None,
+              raw_notes: str | None = None) -> PipelineState:
     graph = build_pipeline(ctx)
     return graph.invoke({
         "repo_id": str(repo_id), "mode": "stage", "author": author,
-        "raw_entries": raw_entries, "session_summary": session_summary,
+        "raw_entries": raw_entries, "raw_notes": raw_notes or "",
+        "session_summary": session_summary,
         "parent_commit": parent_commit, "staging_id": str(uuid.uuid4()),
         "conflicts": [], "proposed_actions": [], "error": None,
     })

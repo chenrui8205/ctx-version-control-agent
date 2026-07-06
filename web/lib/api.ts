@@ -1,5 +1,14 @@
 export type Cfg = { url: string; repo: string; token: string };
 
+// Dev: web on :3000, API on :8000. Prod: one origin, API under /api (Caddy).
+export function apiBase(): string {
+  if (typeof window === "undefined") return "http://localhost:8000";
+  const o = window.location.origin;
+  return o.includes("localhost:3000") || o.includes("127.0.0.1:3000")
+    ? "http://localhost:8000"
+    : `${o}/api`;
+}
+
 export function getCfg(): Cfg | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("ctxvcs");

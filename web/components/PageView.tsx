@@ -1,6 +1,7 @@
 "use client";
 
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useRouter } from "next/navigation";
 
 /** Renders a compiled wiki page; strips frontmatter, rewrites relative links to /wiki/. */
@@ -10,6 +11,7 @@ export default function PageView({ content }: { content: string }) {
   return (
     <div className="md">
       <Markdown
+        remarkPlugins={[remarkGfm]}
         components={{
           a: ({ href, children }) => {
             const external = href?.startsWith("http");

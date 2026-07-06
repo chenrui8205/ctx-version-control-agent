@@ -18,13 +18,27 @@ class Settings(BaseSettings):
     reconcile_model: str = "claude-sonnet-5"
     reconcile_max_tokens: int = 1024
 
+    # M1 server-side extraction (§8 standalone push; same versioned prompt as the skill)
+    extract_model: str = "claude-sonnet-5"
+    extract_max_tokens: int = 4096
+    raw_notes_max_chars: int = 60_000  # hard cap on ctxvcs push input
+
     # embeddings (write path only — §13 forbids embedding-based consumption retrieval)
     embed_provider: str = "openai"  # openai | fake
     embed_model: str = "text-embedding-3-small"
     embed_dim: int = 1536
 
+    # M1 self-serve accounts (single-repo mode, § Core 14)
+    default_repo_name: str = "team-context"  # bootstrapped at startup; signup auto-joins it
+    invite_code: str = ""  # empty ⇒ signup disabled until the operator sets it
+    admin_email: str = ""  # signup with this email gets the owner role
+    bcrypt_rounds: int = 12
+
     # compiler
     template_version: str = "m0-v2"  # pages are functions of (master tree, template version)
+
+    # M1 /context one-shot bundle (ctxvcs pull)
+    context_journal_sessions: int = 3  # how many recent sessions the bundle includes
 
     # evals (§12)
     eval_trials: int = 3  # majority vote over N classifier calls per pair

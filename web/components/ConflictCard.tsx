@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "../lib/i18n";
 
 function Fields({ fields, hot }: { fields: Record<string, any>; hot: string[] }) {
   return (
@@ -39,6 +40,7 @@ export default function ConflictCard({ conflict, onResolve, busy }: {
   onResolve: (decision: any) => void;
   busy: boolean;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const hot = conflict.conflicting_fields || [];
@@ -49,32 +51,32 @@ export default function ConflictCard({ conflict, onResolve, busy }: {
       <div className="row" style={{ marginBottom: 10 }}>
         <span className="tag tag-conflict">contradicts</span>
         <strong>{conflict.subject_key}</strong>
-        {hot.length > 0 && <span className="muted">fields: {hot.join(", ")}</span>}
-        <span className="muted">confidence {(conflict.confidence ?? 0).toFixed(2)}</span>
+        {hot.length > 0 && <span className="muted">{t("fields")}: {hot.join(", ")}</span>}
+        <span className="muted">{t("confidence")} {(conflict.confidence ?? 0).toFixed(2)}</span>
         {(conflict.status !== "open" || decided) && <span className="tag tag-keep">{decided || conflict.status}</span>}
       </div>
       <div className="muted" style={{ marginBottom: 10 }}>
         {conflict.proposed_resolution?.rationale}
       </div>
       <div className="sidebyside">
-        <Side title="Current on master" entry={conflict.existing} cls="existing"
+        <Side title={t("currentOnMaster")} entry={conflict.existing} cls="existing"
               commit={conflict.existing_commit} hot={hot} />
-        <Side title="Incoming" entry={conflict.incoming} cls="incoming" hot={hot} />
+        <Side title={t("incoming")} entry={conflict.incoming} cls="incoming" hot={hot} />
       </div>
       {conflict.status === "open" && !decided && (
         <div className="row" style={{ marginTop: 12 }}>
           <button className="primary" disabled={busy}
                   onClick={() => onResolve({ action: "keep_incoming" })}>
-            Accept incoming
+            {t("acceptIncoming")}
           </button>
           <button disabled={busy} onClick={() => onResolve({ action: "keep_existing" })}>
-            Keep existing
+            {t("keepExisting")}
           </button>
           <button disabled={busy} onClick={() => {
             setDraft(JSON.stringify({ fields: conflict.incoming?.fields, body: conflict.incoming?.body }, null, 2));
             setEditing(!editing);
           }}>
-            Edit…
+            {t("edit")}
           </button>
         </div>
       )}
@@ -86,9 +88,9 @@ export default function ConflictCard({ conflict, onResolve, busy }: {
               try {
                 onResolve({ action: "edit", edited: JSON.parse(draft) });
                 setEditing(false);
-              } catch { alert("invalid JSON"); }
+              } catch { alert(t("invalidJson")); }
             }}>
-              Resolve with edit
+              {t("resolveWithEdit")}
             </button>
           </div>
         </div>

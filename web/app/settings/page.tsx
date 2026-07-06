@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getCfg, setCfg } from "../../lib/api";
+import { useT } from "../../lib/i18n";
 
 export default function Settings() {
+  const t = useT();
   const [url, setUrl] = useState("http://localhost:8000");
   const [repo, setRepo] = useState("");
   const [token, setToken] = useState("");
@@ -24,7 +26,7 @@ export default function Settings() {
       const res = await fetch(`${url}/repos/${repo}/wiki/index`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setMsg(res.ok ? "connected ✓" : `error: ${res.status} ${await res.text()}`);
+      setMsg(res.ok ? t("connected") : `error: ${res.status} ${await res.text()}`);
     } catch (e: any) {
       setMsg(`error: ${e.message}`);
     }
@@ -32,16 +34,16 @@ export default function Settings() {
 
   return (
     <div className="card" style={{ maxWidth: 560 }}>
-      <h3>Connection</h3>
-      <label>API URL</label>
+      <h3>{t("connection")}</h3>
+      <label>{t("apiUrl")}</label>
       <input value={url} onChange={(e) => setUrl(e.target.value)} />
-      <label>Repo ID</label>
-      <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="uuid from POST /repos" />
-      <label>API token</label>
+      <label>{t("repoId")}</label>
+      <input value={repo} onChange={(e) => setRepo(e.target.value)} />
+      <label>{t("apiToken")}</label>
       <input value={token} onChange={(e) => setToken(e.target.value)} type="password" />
       <div style={{ marginTop: 14 }} className="row">
-        <button className="primary" onClick={save}>Save & test</button>
-        <span className={msg.startsWith("connected") ? "banner-ok" : "banner-err"}>{msg}</span>
+        <button className="primary" onClick={save}>{t("saveTest")}</button>
+        <span className={msg === t("connected") ? "banner-ok" : "banner-err"}>{msg}</span>
       </div>
     </div>
   );

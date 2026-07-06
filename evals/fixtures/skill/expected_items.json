@@ -1,33 +1,133 @@
 {
-  "t1": [
-    {"id": "t1-decision", "type": "decision", "origin": "human",
-     "gist": "Use RocketMQ transactional half-messages for ban event emission (over outbox and CDC), closing the dual-write gap."},
-    {"id": "t1-finding-alo", "type": "finding", "origin": "agent",
-     "gist": "RocketMQ delivery on this cluster is at-least-once; ban-lifecycle consumers must be idempotent."},
-    {"id": "t1-finding-dlq", "type": "finding", "origin": "agent",
-     "gist": "Messages exhausting retries land in %DLQ%ban-consumer and nothing consumes or alerts on it (verified with a poison message)."},
-    {"id": "t1-step", "type": "next_step", "origin": "human",
-     "gist": "Write the DLQ replay runbook and wire an alert on the DLQ topic (open)."}
-  ],
-  "t2": [
-    {"id": "t2-decision", "type": "decision", "origin": "human",
-     "gist": "Choose Yoti facial age estimation for the AU U16 flow; Veriff is the documented runner-up; AWS Rekognition rejected."},
-    {"id": "t2-constraint", "type": "constraint", "origin": "agent",
-     "gist": "AU under-16 enforcement begins 10 Dec 2025 (statutory, hard legal deadline for age assurance)."},
-    {"id": "t2-question", "type": "open_question", "origin": "human",
-     "gist": "What is the fallback when Yoti estimation confidence is below threshold — block, document verification, or restricted access? (blocking)"}
-  ],
-  "t3": [
-    {"id": "t3-change", "type": "state_change", "subject": "ban-service-consumer", "origin": "human",
-     "gist": "Changed the ban-service consumer timeout from 60s to 30s after the k6 load test; deployed."},
-    {"id": "t3-finding-loadtest", "type": "finding", "subject": "ban-service-consumer", "origin": "agent",
-     "gist": "At 60s timeout, redelivery storms start ~1400 rps; at 30s, p99 consume latency 2.1s and no storms."},
-    {"id": "t3-finding-retention", "type": "finding", "subject": "ban-service-consumer", "origin": "agent",
-     "gist": "DLQ topic retention is 48h (cluster default), not the 7 days the oncall doc assumes; late replays impossible."},
-    {"id": "t3-close", "type": "next_step", "subject": "dlq-replay-runbook", "origin": "human",
-     "gist": "DLQ replay runbook written and linked from the oncall/pager docs — step closed."},
-    {"id": "t3-question", "type": "open_question", "subject": "dlq-replay-runbook", "origin": "human",
-     "gist": "Should DLQ replays be capped per tenant to avoid one tenant starving others? (open, not blocking)"}
-  ],
-  "t3_reusable_slots": 5
+ "t1": [
+  {
+   "id": "t1-decision",
+   "type": "decision",
+   "origin": "human",
+   "gist": "Use RocketMQ transactional half-messages for ban event emission (over outbox and CDC), closing the dual-write gap."
+  },
+  {
+   "id": "t1-finding-alo",
+   "type": "finding",
+   "origin": "agent",
+   "gist": "RocketMQ delivery on this cluster is at-least-once; ban-lifecycle consumers must be idempotent."
+  },
+  {
+   "id": "t1-finding-dlq",
+   "type": "finding",
+   "origin": "agent",
+   "gist": "Messages exhausting retries land in %DLQ%ban-consumer and nothing consumes or alerts on it (verified with a poison message)."
+  },
+  {
+   "id": "t1-step",
+   "type": "next_step",
+   "origin": "human",
+   "gist": "Write the DLQ replay runbook and wire an alert on the DLQ topic (open)."
+  }
+ ],
+ "t2": [
+  {
+   "id": "t2-decision",
+   "type": "decision",
+   "origin": "human",
+   "gist": "Choose Yoti facial age estimation for the AU U16 flow; Veriff is the documented runner-up; AWS Rekognition rejected."
+  },
+  {
+   "id": "t2-constraint",
+   "type": "constraint",
+   "origin": "agent",
+   "gist": "AU under-16 enforcement begins 10 Dec 2025 (statutory, hard legal deadline for age assurance)."
+  },
+  {
+   "id": "t2-question",
+   "type": "open_question",
+   "origin": "human",
+   "gist": "What is the fallback when Yoti estimation confidence is below threshold — block, document verification, or restricted access? (blocking)"
+  }
+ ],
+ "t3": [
+  {
+   "id": "t3-change",
+   "type": "state_change",
+   "subject": "ban-service-consumer",
+   "origin": "human",
+   "gist": "Changed the ban-service consumer timeout from 60s to 30s after the k6 load test; deployed."
+  },
+  {
+   "id": "t3-finding-loadtest",
+   "type": "finding",
+   "subject": "ban-service-consumer",
+   "origin": "agent",
+   "gist": "At 60s timeout, redelivery storms start ~1400 rps; at 30s, p99 consume latency 2.1s and no storms."
+  },
+  {
+   "id": "t3-finding-retention",
+   "type": "finding",
+   "subject": "ban-service-consumer",
+   "origin": "agent",
+   "gist": "DLQ topic retention is 48h (cluster default), not the 7 days the oncall doc assumes; late replays impossible."
+  },
+  {
+   "id": "t3-close",
+   "type": "next_step",
+   "subject": "dlq-replay-runbook",
+   "origin": "human",
+   "gist": "DLQ replay runbook written and linked from the oncall/pager docs — step closed."
+  },
+  {
+   "id": "t3-question",
+   "type": "open_question",
+   "subject": "dlq-replay-runbook",
+   "origin": "human",
+   "gist": "Should DLQ replays be capped per tenant to avoid one tenant starving others? (open, not blocking)"
+  }
+ ],
+ "t3_reusable_slots": 5,
+ "n1": [
+  {
+   "id": "n1-close",
+   "type": "next_step",
+   "origin": "human",
+   "gist": "DLQ replay runbook written and linked from the oncall wiki — the open runbook next step is done (closed)."
+  },
+  {
+   "id": "n1-finding",
+   "type": "finding",
+   "origin": "human",
+   "gist": "Replay ordering is not guaranteed: replayed messages append to the tail of the topic, so consumers can see a replayed event after newer events."
+  },
+  {
+   "id": "n1-decision",
+   "type": "decision",
+   "origin": "human",
+   "gist": "Replays stay manual-only for now (no auto-replay cron); nightly auto-replay rejected as too risky until idempotency keys land."
+  },
+  {
+   "id": "n1-step",
+   "type": "next_step",
+   "origin": "human",
+   "gist": "Add idempotency keys to the ban consumer next week (open, owned by the note author)."
+  }
+ ],
+ "n2": [
+  {
+   "id": "n2-change",
+   "type": "state_change",
+   "origin": "human",
+   "gist": "Ban-service consumer batch size raised 32 -> 64 after Friday's backlog; queue drains ~2x faster, no timeout errors."
+  },
+  {
+   "id": "n2-finding",
+   "type": "finding",
+   "origin": "human",
+   "gist": "Yoti sandbox age-estimation flow works end to end in staging, ~1.4s p50 per check."
+  },
+  {
+   "id": "n2-question",
+   "type": "open_question",
+   "origin": "human",
+   "gist": "What do we do with users who fail age estimation twice? (open, non-blocking)."
+  }
+ ],
+ "n2_reuse_gate": 2
 }

@@ -47,6 +47,25 @@ class EchoExpectedClient:
                                conflicting_fields=list(conflicting_fields))
 
 
+class FakeExtractClient:
+    """Deterministic notes extractor: returns the JSON block embedded in the notes
+    (```json {entries: [...], session_summary: "..."} ```). Tests author their notes
+    with the expected extraction inline — plumbing test, never extraction quality."""
+
+    def extract(self, raw_notes, subject_registry, entry_types, *, today):
+        import json
+        import re
+
+        from ctxvcs.llm.extract import ExtractResult
+
+        m = re.search(r"```json\s*(\{.*?\})\s*```", raw_notes, re.DOTALL)
+        if not m:
+            return ExtractResult(entries=[], session_summary="")
+        data = json.loads(m.group(1))
+        return ExtractResult(entries=data.get("entries", []),
+                             session_summary=data.get("session_summary", ""))
+
+
 class FakeEmbedder:
     """Deterministic sha256-seeded unit vector. Similar text does NOT embed near —
     scenario retrieval relies on subject_key equality, which is the point."""

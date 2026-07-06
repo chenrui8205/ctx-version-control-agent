@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-"""Skill extraction eval (§12.4): T1–T3 transcripts → entries, scored with hard gates.
+"""Skill extraction eval (§12.4): T1–T3 transcripts + N1–N2 raw notes → entries.
 
 Gates:
   schema-validity 100% (deterministic)          — every extracted entry passes JSON Schema
   subject reuse >= 4/5 reusable slots on T3     — the anti-sprawl gate
-  expected-item recall >= 80% across T1–T3      — judged (pinned judge, evals/judge/)
-  hallucinated decisions == 0                   — judged: every decision grounded in transcript
+  expected-item recall >= 80% across T1–T3+N1–N2 — judged (pinned judge, evals/judge/)
+  hallucinated decisions == 0                   — judged: every decision grounded in input
+  N1 closes the open thread on a registry subject — deterministic (M1 notes path)
+  N2 reuses >= 2 distinct registry subjects       — deterministic (M1 notes path)
 
 Modes:
   fake — scripted extractor echoes expected items; recall/grounding become deterministic.
@@ -35,11 +37,13 @@ RECALL_GATE = 0.8
 T3_REUSE_GATE = 4  # of 5 reusable slots
 
 
-def load() -> tuple[dict, dict, dict]:
+def load() -> tuple[dict, dict, dict, dict]:
     expected = json.loads((FIX / "expected_items.json").read_text())
     registry = json.loads((FIX / "t3_registry.json").read_text())
-    transcripts = {t: (FIX / f"{t}_transcript.md").read_text() for t in ("t1", "t2", "t3")}
-    return expected, registry, transcripts
+    texts = {t: (FIX / f"{t}_transcript.md").read_text() for t in ("t1", "t2", "t3")}
+    texts |= {n: (FIX / f"{n}_notes.md").read_text() for n in ("n1", "n2")}
+    n_registry = json.loads((FIX / "n_registry.json").read_text())
+    return expected, registry, texts, n_registry
 
 
 # ---------------- extractors ----------------
@@ -61,7 +65,8 @@ def fake_extract(tid: str, transcript: str, registry: list[str], expected: dict)
     return out
 
 
-def live_extract(tid: str, transcript: str, registry: list[str]) -> list[dict]:
+def live_extract(tid: str, transcript: str, registry: list[str],
+                 input_key: str = "transcript") -> list[dict]:
     import anthropic
 
     from ctxvcs.llm.claude import PROMPTS
@@ -83,7 +88,7 @@ def live_extract(tid: str, transcript: str, registry: list[str]) -> list[dict]:
     payload = {
         "subject_registry": registry,
         "entry_types": list(DEFAULT_ENTRY_TYPES),
-        "transcript": transcript,
+        input_key: transcript,
         "today": "2026-07-04",
     }
     msg = client.messages.create(
@@ -159,11 +164,12 @@ def main() -> int:
         return 2
     if args.mode == "live":
         cfg = settings()
-        # 3 extractions + one Task-A judge call per expected item (12) + Task-B per decision (~3)
-        print(f"live eval: ~18 calls to {cfg.reconcile_model} (3 extractions + judge passes)")
+        # 5 extractions + one Task-A judge call per expected item (19) + Task-B per decision (~4)
+        print(f"live eval: ~28 calls to {cfg.reconcile_model} (5 extractions + judge passes)")
 
-    expected, registry, transcripts = load()
+    expected, registry, transcripts, n_registry = load()
     reg_subjects = [s["subject_key"] for s in registry["subjects"]]
+    n_reg_subjects = [s["subject_key"] for s in n_registry["subjects"]]
 
     per_t: dict[str, dict] = {}
     schema_valid = True
@@ -175,11 +181,24 @@ def main() -> int:
     t3_reused = 0
     t3_total_entries = 0
 
-    for tid in ("t1", "t2", "t3"):
+    n1_close_ok = False
+    n2_reused: set[str] = set()
+
+    for tid in ("t1", "t2", "t3", "n1", "n2"):
+        is_notes = tid.startswith("n")
+        subjects = n_reg_subjects if is_notes else reg_subjects
         if args.mode == "fake":
-            entries = fake_extract(tid, transcripts[tid], reg_subjects, expected)
+            entries = fake_extract(tid, transcripts[tid], subjects, expected)
+            if is_notes:  # the echo extractor invents subjects; pin them so gate plumbing is testable
+                for e in entries:
+                    if tid == "n1" and e["fields"].get("status") == "closed":
+                        e["subject"] = "dlq-replay-runbook"
+                    if tid == "n2" and e["type"] in ("state_change", "finding", "open_question"):
+                        e["subject"] = {"state_change": "ban-service-consumer"}.get(
+                            e["type"], "au-u16-age-assurance")
         else:
-            entries = live_extract(tid, transcripts[tid], reg_subjects)
+            entries = live_extract(tid, transcripts[tid], subjects,
+                                   input_key="raw_notes" if is_notes else "transcript")
         try:
             validate_entries(entries, DEFAULT_ENTRY_TYPES)
         except ValidationError as ve:
@@ -199,6 +218,15 @@ def main() -> int:
             t3_reused = sum(1 for e in entries
                             if (e.get("subject") or e.get("fields", {}).get("subject", "")).lower().strip()
                             in reg_subjects)
+        if tid == "n1":
+            n1_close_ok = any(
+                (e.get("fields") or {}).get("status") == "closed"
+                and (e.get("subject") or e.get("fields", {}).get("subject", "")).lower().strip()
+                in n_reg_subjects
+                for e in entries)
+        if tid == "n2":
+            n2_reused = {(e.get("subject") or e.get("fields", {}).get("subject", "")).lower().strip()
+                         for e in entries} & set(n_reg_subjects)
         per_t[tid] = {"n_entries": len(entries), "coverage": cov,
                       "entries": [{k: e.get(k) for k in ("type", "subject", "fields", "body")}
                                   for e in entries]}
@@ -209,6 +237,9 @@ def main() -> int:
         f"T3 subject reuse >= {T3_REUSE_GATE}/{expected['t3_reusable_slots']}": t3_reused >= T3_REUSE_GATE,
         f"expected-item recall >= {RECALL_GATE:.0%}": recall >= RECALL_GATE,
         "hallucinated decisions == 0": len(hallucinated) == 0,
+        "N1 closes the open thread on a registry subject": n1_close_ok,
+        f"N2 reuses >= {expected['n2_reuse_gate']} distinct registry subjects":
+            len(n2_reused) >= expected["n2_reuse_gate"],
     }
     passed = all(gates.values())
 

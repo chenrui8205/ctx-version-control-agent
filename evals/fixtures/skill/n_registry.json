@@ -1,0 +1,9 @@
+{
+  "subjects": [
+    {"subject_key": "dlq-replay-runbook", "entry_count": 2,
+     "note": "has an OPEN next_step: write the DLQ replay runbook for ban-service"},
+    {"subject_key": "ban-service-consumer", "entry_count": 4},
+    {"subject_key": "au-u16-age-assurance", "entry_count": 3},
+    {"subject_key": "rocketmq-delivery", "entry_count": 2}
+  ]
+}

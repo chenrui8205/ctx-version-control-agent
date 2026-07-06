@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import PageView from "../../components/PageView";
+import { useT } from "../../lib/i18n";
 
 const TABS = [
-  { slug: "open-threads", label: "Open threads" },
-  { slug: "journal", label: "Journal" },
-  { slug: "index", label: "Index" },
+  { slug: "open-threads", key: "openThreads" },
+  { slug: "journal", key: "journal" },
+  { slug: "index", key: "index" },
 ];
 
 export default function Wiki() {
+  const t = useT();
   const [tab, setTab] = useState("open-threads"); // the landing tab (§10)
   const [page, setPage] = useState<any>(null);
   const [err, setErr] = useState("");
@@ -32,15 +34,15 @@ export default function Wiki() {
   return (
     <div>
       <div className="searchbox">
-        <input placeholder="Search the working context…" value={q}
+        <input placeholder={t("searchPlaceholder")} value={q}
                onChange={(e) => setQ(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && search()} />
-        <button onClick={search}>Search</button>
+        <button onClick={search}>{t("search")}</button>
       </div>
       {results && (
         <div className="card">
-          <h3>Results</h3>
-          {results.length === 0 && <div className="muted">no matches</div>}
+          <h3>{t("results")}</h3>
+          {results.length === 0 && <div className="muted">{t("noMatches")}</div>}
           {results.map((r, i) => (
             <div key={i} style={{ margin: "8px 0" }}>
               <Link href={`/wiki/${r.slug}`}>{r.slug}</Link>
@@ -50,10 +52,10 @@ export default function Wiki() {
         </div>
       )}
       <div className="tabs">
-        {TABS.map((t) => (
-          <a key={t.slug} className={tab === t.slug ? "active" : ""} onClick={() => setTab(t.slug)}
+        {TABS.map((tb) => (
+          <a key={tb.slug} className={tab === tb.slug ? "active" : ""} onClick={() => setTab(tb.slug)}
              style={{ cursor: "pointer" }}>
-            {t.label}
+            {t(tb.key)}
           </a>
         ))}
       </div>
@@ -61,12 +63,12 @@ export default function Wiki() {
       {page ? (
         <>
           <div className="muted" style={{ marginBottom: 8 }}>
-            as of <span className="mono">{page.source_commit?.slice(0, 8)}</span> · compiled {page.compiled_at?.slice(0, 19)}
+            {t("asOf")} <span className="mono">{page.source_commit?.slice(0, 8)}</span> · {t("compiledAt")} {page.compiled_at?.slice(0, 19)}
           </div>
           <PageView content={page.content} />
         </>
       ) : (
-        !err && <div className="muted">loading…</div>
+        !err && <div className="muted">{t("loading")}</div>
       )}
     </div>
   );

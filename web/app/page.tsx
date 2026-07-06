@@ -7,7 +7,7 @@ import { getCfg } from "../lib/api";
 export default function Home() {
   const router = useRouter();
   useEffect(() => {
-    router.replace(getCfg() ? "/wiki" : "/settings");
+    router.replace(getCfg() ? "/wiki" : "/login");
   }, [router]);
   return null;
 }

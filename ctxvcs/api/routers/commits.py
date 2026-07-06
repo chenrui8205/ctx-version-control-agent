@@ -67,3 +67,16 @@ def get_history(r: uuid.UUID, entry_id: uuid.UUID, session: Session = Depends(ge
             v["body"] = row.body
             v["provenance"] = row.provenance
     return {"entry_id": str(entry_id), "versions": chain}
+
+
+@router.get("/repos/{r}/entries/{entry_id}/blame")
+def get_blame(r: uuid.UUID, entry_id: uuid.UUID, session: Session = Depends(get_session),
+              _m: Member = Depends(require_member)):
+    """M1 溯源 (§9): who says so, in what capacity, and was it ever contested —
+    version chain + how each version landed + conflict challenges + per-field origin."""
+    from ctxvcs.dag.blame import blame_entry
+
+    out = blame_entry(session, r, entry_id)
+    if out is None:
+        raise HTTPException(404, "unknown entry_id on this branch")
+    return out

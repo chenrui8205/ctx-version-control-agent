@@ -1,0 +1,10 @@
+# One origin: the web app at /, the API under /api/* (Caddy strips the prefix).
+# TLS certificates are automatic (Let's Encrypt) once DNS points here.
+{$DOMAIN} {
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

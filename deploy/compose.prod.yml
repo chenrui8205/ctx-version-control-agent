@@ -1,0 +1,81 @@
+# M1 production stack (spec §1 deployment): one VM, this file, Caddy TLS, nightly dumps.
+#   cp deploy/env.prod.example deploy/.env.prod  && edit it
+#   docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d --build
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ctxvcs
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ctxvcs
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ctxvcs"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CTXVCS_DATABASE_URL: postgresql+psycopg://ctxvcs:${DB_PASSWORD}@db:5432/ctxvcs
+      CTXVCS_INVITE_CODE: ${INVITE_CODE}
+      CTXVCS_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      CTXVCS_DEFAULT_REPO_NAME: ${TEAM_REPO_NAME:-team-context}
+      CTXVCS_PUBLIC_ORIGIN: https://${DOMAIN}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api, web]
+
+  backup:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    # nightly gzip dump, keep the last 14 — restore drill: deploy/README.md §5
+    command:
+      - |
+        while true; do
+          pg_dump -h db -U ctxvcs ctxvcs | gzip > "/backups/ctxvcs-$(date +%Y%m%d-%H%M%S).sql.gz"
+          ls -1t /backups/ctxvcs-*.sql.gz | tail -n +15 | xargs -r rm
+          sleep 86400
+        done
+
+volumes:
+  pgdata:
+  backups:
+  caddy_data:
+  caddy_config:

@@ -136,6 +136,7 @@ def commit_staged(
             )
         by_temp: dict[str, Conflict] = {}
         unresolved: list[uuid.UUID] = []
+        resolved_now = 0
         for c in conflict_rows:
             temp_id = (c.incoming or {}).get("id")
             if temp_id:
@@ -165,7 +166,12 @@ def commit_staged(
                 decision = (res or {}).get("action", "keep_existing")
                 if c is not None:
                     c.status = "resolved"
-                    c.proposed_resolution = {**(c.proposed_resolution or {}), "decided": decision}
+                    pr = dict(c.proposed_resolution or {})
+                    if res and not pr.get("decision"):
+                        pr["decision"] = dict(res)  # keeps decided_by/note for blame (§9)
+                    pr["decided"] = decision
+                    c.proposed_resolution = pr
+                    resolved_now += 1
                 if decision == "keep_existing":
                     continue
                 if decision == "edit" and res and res.get("edited"):
@@ -207,8 +213,11 @@ def commit_staged(
             elif act == "drop":
                 continue
 
-        if not changed:
+        if not changed and not resolved_now:
             raise CommitError("empty commit: no entries would change master")
+        # tree-unchanged but resolutions were applied (e.g. every incoming rejected):
+        # the commit still lands — the resolution IS the change, and the journal must
+        # record who rejected what (blame's audit trail depends on it)
 
         created_at = datetime.now(UTC)
         commit_hash = compute_commit_hash(
