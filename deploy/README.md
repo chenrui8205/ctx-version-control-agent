@@ -5,10 +5,17 @@ Budget: ~$6–15/mo + a domain.
 
 ## 1. What you need before starting (10 minutes, human steps)
 
-1. **A VM.** Hetzner (recommended, cheapest) or DigitalOcean:
-   - Hetzner: https://console.hetzner.cloud → New Project → Add Server →
-     type **CX22** (2 vCPU / 4 GB, ~€4.6/mo), image **Ubuntu 24.04**, add your SSH key.
-   - DigitalOcean equivalent: Basic droplet, 2 GB+ RAM, Ubuntu 24.04.
+1. **A VM.** DigitalOcean (recommended: signup is email + card, no ID-document
+   verification, friendliest console for a first VM):
+   - https://cloud.digitalocean.com → Create → Droplets → image **Ubuntu 24.04** →
+     Basic plan, **$12/mo (1 vCPU / 2 GB)** is enough for a friends-team demo
+     (step 2 adds swap for headroom; resize in place later if it ever feels tight) →
+     Authentication: **SSH key** (paste `cat ~/.ssh/id_ed25519.pub`) → Create.
+   - Networking → Firewalls (optional but good practice): allow only 22, 80, 443.
+   - Alternatives if you prefer: Vultr (~$12/mo, similar flow) or AWS Lightsail
+     ($12/mo, flat pricing). Hetzner is cheapest (~€4.6/mo CX22) but requires
+     identity verification for new accounts. Any Ubuntu box works — nothing below
+     is provider-specific.
 2. **A domain (or subdomain).** Any registrar (~$10/yr). Create an **A record**
    pointing e.g. `ctx.yourdomain.com` → the VM's public IPv4. TLS is automatic
    after that (Caddy + Let's Encrypt) — no certificate work.
@@ -19,6 +26,9 @@ Budget: ~$6–15/mo + a domain.
 ```bash
 ssh root@<VM_IP>
 curl -fsSL https://get.docker.com | sh
+# on a 2 GB box, add swap so builds and pg never get OOM-killed:
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 git clone <this-repo-url> ctxvcs && cd ctxvcs
 cp deploy/env.prod.example deploy/.env.prod
 nano deploy/.env.prod        # DOMAIN, DB_PASSWORD (long random), INVITE_CODE,
