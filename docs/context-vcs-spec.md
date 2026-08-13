@@ -24,6 +24,7 @@ Deliver **M0 first as a complete, running end-to-end platform** the team uses da
 14. Permissions: M0 is **repo membership + per-user API tokens**. M1 adds **self-serve accounts** — signup with email + password + a shared invite code; login mints the member's API token server-side (nobody pastes tokens); **single-repo mode** (signup auto-joins the server's default repo); one admin principal — and deliberately nothing finer. The `access_labels` column exists from day one; M2 turns on label-based Postgres RLS with no data migration. RLS (not app-layer filtering) is the target enforcement.
 15. **Lint** (M2) is a periodic whole-corpus pass (master-vs-master) using the same reconcile classifier; findings open Merge Requests. Lint never auto-fixes.
 16. A commit is **one Postgres transaction**: entries, commit row, tree, materialized HEAD, ref advance — atomic under a per-(repo, branch) advisory lock. The ref update is the durable commit point. Page compilation runs *after* and *outside* this transaction.
+17. **Revert (M2, added 2026-08-12) is a forward commit, never a ref rollback.** Refs only advance; history keeps everything — revert changes only what's current. It decomposes into two entry ops: *restore* (point an `entry_id` back at a prior `content_hash` — an ordinary supersede to an already-stored row) and *retract* (omit the `entry_id` from the commit tree — the system's only delete; tree-level, never touching `entries` rows). The revert path is **fully deterministic — no LLM**: staleness (the entry changed again since the reverted commit) is decided by content-hash equality, and `retract` is never emitted by the reconcile classifier. See §11 M2.
 
 ## 1. Stack
 
@@ -140,6 +141,8 @@ CREATE TABLE commits (
   author TEXT, message TEXT NOT NULL,       -- message = session summary
   session_id UUID, created_at TIMESTAMPTZ DEFAULT now()
 );
+-- M2 adds: revert_of TEXT NULL REFERENCES commits(hash) — set on revert commits (Core Decision 17);
+--          the only schema change revert needs. Entry-level scope lives in the staged actions.
 CREATE TABLE commit_parents (commit_hash TEXT REFERENCES commits(hash), parent_hash TEXT REFERENCES commits(hash),
                              PRIMARY KEY (commit_hash, parent_hash));   -- linear in M0; table shape ready for M3
 CREATE TABLE commit_entries (commit_hash TEXT REFERENCES commits(hash), entry_id UUID, content_hash TEXT REFERENCES entries(content_hash),
@@ -212,7 +215,7 @@ A commit is exactly one Postgres transaction, executed while holding the advisor
 1. Insert any new `entries` rows (content-hash upsert).
 2. Insert the `commits` row (+ `commit_parents` row to the previous HEAD).
 3. Insert the full `commit_entries` tree.
-4. Replace the affected `master_entries` rows.
+4. Replace the affected `master_entries` rows (M2 revert: a **retract** deletes the row — the commit's `commit_entries` tree simply omits the entry).
 5. Advance `refs`.
 
 The ref/`master_entries` update is the durable commit point. A failure before step 5 leaves at most orphaned content-addressed `entries` rows — harmless and invisible. Page compilation is enqueued after the transaction commits, never inside it.
@@ -227,7 +230,7 @@ State: `repo_id, parent_commit, incoming_entries[], proposed_actions[], conflict
 4. **apply_actions** — execute the routing table. In `mode='stage'` simulated into `proposed_actions`; in `mode='commit'` writes via §4.3.
 5. **router** — any unresolved `contradicts` ⇒ `needs_review`, persist Merge Request + conflicts, do not advance master; else auto-merge and enqueue `compile_dirty_pages(commit)`.
 
-M1 prepends an optional **extract** node (raw notes → candidate entries via `llm/extract`, subject registry passed in-prompt) ahead of validate — used by the standalone push path only. M2 adds: **intra_push_dedup** (semantic, within batch), **rate** (hygiene gate before router). Commits serialize per repo via the advisory lock.
+M1 prepends an optional **extract** node (raw notes → candidate entries via `llm/extract`, subject registry passed in-prompt) ahead of validate — used by the standalone push path only. M2 adds: **intra_push_dedup** (semantic, within batch), **rate** (hygiene gate before router), and the **revert planner** — a deterministic node (no LLM) that turns `POST /revert` into precomputed `proposed_actions` (restore/retract, stale entries marked), entering the graph at apply_actions/router; validate, embed, and reconcile are skipped. Commits serialize per repo via the advisory lock.
 
 ## 6. Reconciliation classifier — the write-side centerpiece (M0)
 
@@ -268,6 +271,8 @@ Routing table (relation → action; identity rule in parentheses):
 2. **One supersede per target per batch (DF-1).** `apply_actions` must never apply two supersedes to the same target `entry_id` in one push — last-writer-wins silently destroys the first (the preview says "supersede" while the effect is an unlabeled drop). After rule 1 downgrades, if more than one supersede still targets one entry, fail closed: persist `ambiguous_supersede` conflict rows for the extras and route the push to review, like a contradiction.
 
 `reconcile` returns strict JSON via tool output: `{relation, confidence, rationale, conflicting_fields[]}`. Config: `TAU_CONF` 0.82, `CONF_MIN` 0.6 (below it, downgrade `contradicts` per config). No literals in code. Granularity is entry-level; leave an `llm/claim_extractor` seam, do not implement.
+
+**Action-vocabulary guard (M2 revert, 2026-08-12):** `retract` (remove an `entry_id` from the tree) exists as an `apply_actions` primitive but is **not** a classifier relation — only the §5 revert planner may emit it. The classifier's relation set stays closed at the seven above; a `retract` appearing in classifier output is a hard error, not a downgrade.
 
 ## 7. Compiled read model (M0: fully deterministic)
 
@@ -318,6 +323,7 @@ ctxvcs push                        # opens $EDITOR with a notes template; or --f
 ctxvcs threads | journal | page <subject> | search <q>     # read commands (compiled pages only)
 ctxvcs pull                        # one-shot /context bundle -> paste into any agent
 ctxvcs blame <subject> [field]     # who says so, in what capacity, ever contested? (M1, §9)
+ctxvcs revert <commit> [--entry id]# forward-commit undo: preview (restorable|retractable|stale) -> confirm (M2, §9)
 ctxvcs install-skill               # installs the agent skill to ~/.claude/skills, env wired
 ```
 The two paths share everything downstream of extraction: same stage/commit API, same pipeline, same preview semantics. Extraction quality for the notes path is gated by §12.4's notes-based fixtures.
@@ -356,7 +362,11 @@ POST   /repos/{r}/wiki/rebuild    (owner)
 #         landed (new | supersede | conflict-resolution {decided_by, rejected value} | edit), and
 #         per-field "value introduced in" — pure read-model composition over entries/commits/conflicts/
 #         staged actions; no schema change; works retroactively
-# M2: /grants + RLS enforcement · /wiki/redlinks · lint report endpoints
+# M2: /grants + RLS enforcement · /wiki/redlinks · lint report endpoints ·
+#     POST /repos/{r}/revert  body {target_commit, entry_ids?}  -> {job_id} — deterministic revert
+#         staging (no LLM): the preview marks each touched entry restorable | retractable | stale;
+#         finalize via the standard POST /staging/{id}/commit {resolutions[]}. Blame's "how each
+#         version landed" vocabulary grows `revert {reverted_commit}`.
 # M3: /branches/* · LCA/merge-base · MCP server surface
 ```
 
@@ -365,7 +375,7 @@ POST   /repos/{r}/wiki/rebuild    (owner)
 - **Review / merge queue (hero).** Staging preview: incoming entries tagged new / refine / supersede / kept-both / dropped / conflict. Conflicts render current vs incoming side by side with the classifier's rationale, confidence, conflicting fields, and **each side's origin (human/agent) + session + timestamp**. Accept / edit / reject map to `commit` resolutions. Build this first and best.
 - **Wiki browser.** Open-threads as the default landing tab; journal; index navigation; subject pages with the serve-time conflict overlay; a search box over `/wiki/search`.
 
-M1 screens: **signup/login + onboarding** (register with invite code → shown exactly two commands: `pipx install ctxvcs`, `ctxvcs login` → first-push walkthrough); settings auto-configured by login (no API-URL/repo-id/token pasting anywhere); pending-review badge for the admin; **zh-CN UI chrome** (all navigation, buttons, form labels, review-screen strings via a locale dictionary; default zh-CN, en toggle — compiled page/entry content stays English by explicit assumption, no template localization); **blame panel (溯源)** — click any Facts row or entry on a subject page → provenance timeline from `GET /entries/{id}/blame`: who pushed each version, human vs agent, which session, and whether it survived a conflict (showing the rejected value and who decided). M2: grants admin, lint reports, redlink queue. M3: schema editor.
+M1 screens: **signup/login + onboarding** (register with invite code → shown exactly two commands: `pipx install ctxvcs`, `ctxvcs login` → first-push walkthrough); settings auto-configured by login (no API-URL/repo-id/token pasting anywhere); pending-review badge for the admin; **zh-CN UI chrome** (all navigation, buttons, form labels, review-screen strings via a locale dictionary; default zh-CN, en toggle — compiled page/entry content stays English by explicit assumption, no template localization); **blame panel (溯源)** — click any Facts row or entry on a subject page → provenance timeline from `GET /entries/{id}/blame`: who pushed each version, human vs agent, which session, and whether it survived a conflict (showing the rejected value and who decided). M2: grants admin, lint reports, redlink queue, **revert** (⟲ affordance on journal session blocks and entry history → revert staging preview reusing the review queue's per-entry layout; stale entries demand an explicit per-entry decision, never a silent skip). M3: schema editor.
 
 ## 11. Milestones
 
@@ -408,7 +418,9 @@ Acceptance (scripted, then two weeks of friend-team dogfood):
 - Blame on a conflict-resolved fact (the S1 shape) returns the full story — both versions' authors and origins, the rejected value, the decider, the commits — via API, UI panel, and CLI; output byte-stable across recompiles/rebuilds.
 
 ### M2 — trust and depth (was M1)
-Label RLS enforcement (dedicated RLS-subject app role; compiler/lint under a privileged service role; verify enforcement by querying as the app role directly) · complementary merge (deterministic field union, `llm/merge_body`, revalidate, scalar collision ⇒ `contradicts`) · rating gate (`schema_completeness`, `provenance_present`, `specificity`, redundancy penalty; below threshold ⇒ review) · semantic intra-push dedup · nightly lint (master-vs-master sweep within subject clusters + budgeted near-neighbor pairs ⇒ `origin='lint'` MRs; invariants: input_hash recompute, `master_entries` ≡ HEAD, page lag bound) · `## Current understanding` synthesis with input-hash gating + `wiki_page_versions` · redlinks · Celery/Redis swap-in · eval expansion per §12: grow the fixture set to ≥60 pairs, add model-version regression tracking and per-relation trend reports in CI; `contradicts` recall and `refines`-vs-`contradicts` separation remain the headline metrics.
+Label RLS enforcement (dedicated RLS-subject app role; compiler/lint under a privileged service role; verify enforcement by querying as the app role directly) · complementary merge (deterministic field union, `llm/merge_body`, revalidate, scalar collision ⇒ `contradicts`) · rating gate (`schema_completeness`, `provenance_present`, `specificity`, redundancy penalty; below threshold ⇒ review) · semantic intra-push dedup · nightly lint (master-vs-master sweep within subject clusters + budgeted near-neighbor pairs ⇒ `origin='lint'` MRs; invariants: input_hash recompute, `master_entries` ≡ HEAD, page lag bound) · `## Current understanding` synthesis with input-hash gating + `wiki_page_versions` · redlinks · Celery/Redis swap-in · eval expansion per §12: grow the fixture set to ≥60 pairs, add model-version regression tracking and per-relation trend reports in CI; `contradicts` recall and `refines`-vs-`contradicts` separation remain the headline metrics · **revert** (added 2026-08-12; next paragraph).
+
+**Revert — commit/entry-level undo (added 2026-08-12; approved amendment).** Undo at commit or entry granularity, git-`revert`-shaped: always a **forward commit** (Core Decision 17), never a ref rollback — history keeps everything; revert changes only what's current. Two entry ops: **restore** (`entry_id` → prior `content_hash`; an ordinary supersede to an already-stored row — zero new `entries` rows, identity preserved; restoring the open version of a closed lifecycle entry reopens it with no special casing) and **retract** (the commit tree omits the `entry_id`; the `master_entries` row is deleted — the system's only delete, and it never touches `entries`). Fully deterministic, no LLM: an entry reverts cleanly iff master's current `content_hash` still equals what the target commit produced; otherwise it is **stale** and requires an explicit per-entry decision in the preview. The reconcile classifier is never invoked (§6 action-vocabulary guard). The flow reuses two-phase stage/commit wholesale: `POST /revert` (§9) → revert planner (§5) → staging preview (restorable | retractable | stale) → `POST /staging/{id}/commit {resolutions[]}` → §4.3 transaction (step 4 deletes rows for retracts) → normal dirty-page recompile. Schema delta: `commits.revert_of` only. Blame's landing vocabulary grows `revert {reverted_commit}`; reverting a conflict-resolution commit restores the pre-resolution value with the reverter attributed. Any member may revert — clean reverts auto-commit like clean pushes; journal + blame keep it fully auditable. Deterministic ⇒ §14 invariants + a golden-scenario extension, no LLM eval (§12.5). Entry-level restore also covers cherry-pick-from-history (resurrect a superseded version) for free.
 
 ### M3 — scale and reach (was M2)
 Branches + LCA/merge-base + branch-aware diff · per-view (label-partitioned) page compilation, baseline eager / restricted lazy · MCP server exposing search/read/stage · schema-editor UI · multi-repo/team hardening (drops M1's single-repo assumption) · wiki export (Obsidian-browsable tree) · claim-level decomposition seam activation if entry-level precision proves insufficient.
@@ -475,7 +487,7 @@ Three synthetic transcripts in `fixtures/skill/`, each a condensed session log w
 Metrics and gates: schema-validity **100%** (deterministic); subject reuse ≥ **4/5** reusable slots on T3 (the anti-sprawl gate); expected-item recall ≥ **80%** across T1–T3; hallucinated decisions = **0**, graded by an LLM judge that checks each extracted `decision` is grounded in the transcript. Judge discipline: judge model + rubric are pinned files in `evals/`; the human spot-checks the judge's first 20 verdicts before its scores are trusted; judges are used only where no ground-truth label exists (never in §12.2).
 
 ### 12.5 What is *not* an eval
-The compiler, DAG, transaction boundary, and prefilter dict-diff are deterministic — they get invariant tests (§14), not fixtures. Do not put an LLM judge on anything a byte-comparison can verify.
+The compiler, DAG, transaction boundary, prefilter dict-diff, and the M2 revert planner are deterministic — they get invariant tests (§14), not fixtures. Do not put an LLM judge on anything a byte-comparison can verify.
 
 ### 12.6 Development-loop contract (binding on the coding agent)
 1. Build `evals/` scaffolding and copy the seed fixtures **before** implementing `llm/reconcile`. Develop the classifier against `run_reconcile.py`.
@@ -493,4 +505,5 @@ Code-source binding / code-change staleness; distributed/p2p; CRDTs; delta-compr
 - Invariant tests: content-hash canonicalization stability; `master_entries` ≡ HEAD tree after every commit; commit-transaction atomicity under injected failure; identity rules (supersede keeps `entry_id`; nothing ever aliases two existing ids); **routing rules (2026-07-04): no batch applies two supersedes to one `entry_id`; a non-same-type supersede of an `x-lifecycle` entry is always downgraded to keep; entry type never mutates under a stable `entry_id` on master**.
 - Compiler: deterministic pages byte-stable across recompiles; memoization verified (unchanged input hash ⇒ zero writes); rebuild-from-scratch equivalence.
 - Blame (M1): deterministic — invariant tests assert the version chain, per-field introduction points, and conflict-resolution attribution (decider + rejected value) against golden-scenario end states; never an LLM judge.
+- Revert (M2): deterministic — invariants: revert∘revert round-trips master state; `master_entries` ≡ HEAD tree after every revert commit; restore preserves `entry_id` and creates zero new `entries` rows; retract removes the entry from open-threads and its subject page (a subject losing its last entry empties/removes the page); stale detection fires under an injected intervening supersede; the classifier never emits `retract`; blame attributes the revert commit. Golden-scenario extension: revert the S1 conflict-resolution commit ⇒ pre-resolution value restored, blame shows the full story; never an LLM judge.
 - All thresholds/weights in a typed config object; no magic numbers in logic.
